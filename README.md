@@ -146,7 +146,7 @@ heading | none | the column heading, exactly as it appears; you may add new colu
 required | true | true/false; use this to disable mandatory columns (not recommended!)
 default | none | if the column is missing or if there is no value in a particular row, this value will be used instead
 type | string | string/number/date; type of value expected (this will be validated as far as possible)
-describes | sample | location/collection/sample/assay/species; which aspect of the data does this column describe?
+describes | sample | location/collection/sample/assay/species; which aspect of the data does this column describe? (species means the species identification process)
 controlled | true | true/false; for string type columns, must there be ontology terms in study_terms for all values?
 protocol | none | only applies to (and is required for) `describes: assay` columns, use the study_protocol_name reference, e.g. `PCR` in the above example  
 
