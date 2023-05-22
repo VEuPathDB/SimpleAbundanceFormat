@@ -14,12 +14,12 @@ collection_end_date|ISO 8601 date format (YYYY-MM-DD)|Mandatory|Date at which tr
 trap_ID|string|Advisory|Internal trap ID for the collection, may be used as part of processing for distinct collection events
 GPS_latitude|GPS decimal degrees|Mandatory|Latitude for collection site, max. 6 decimal places
 GPS_longitude|GPS decimal degrees|Mandatory|Longitude for collection site, max. 6 decimal places
-GPS_qualifier|string|Optional|controlled vocabulary/ontology term to describe source and precision of GPS coordinates
+GPS_qualifier (deprecated)|string|Optional|controlled vocabulary/ontology term to describe source and precision of GPS coordinates
 location_description|string|Optional|Collection location description e.g. Orlando
 location_ADM2|string|Optional|Administrative level 2 for collection e.g. Orange County
 location_ADM1|string|Optional|Administrative level 1 for collection e.g. Florida
 location_country|string|Optional|Country in which collection occurred e.g. United States of America
-trap_type|string|Mandatory|Trap type e.g. CDC light trap, New Jersey Trap, defined further in protocols section
+trap_type (deprecated)|string|Mandatory|Trap type e.g. CDC light trap, New Jersey Trap, defined further in protocols section
 attractant|string|Advisory|List of attractants used in the trap e.g. CO2, light|yes, semicolon delimited
 trap_number|integer|Mandatory|Number of traps deployed (Default is 1)
 trap_duration|integer|Mandatory|Number of nights/days trap was deployed (Default is 1)
@@ -35,9 +35,16 @@ species_comment|string|Optional|free text comments about the species identificat
 phenotypes|string|Optional| phenotype should be formatted as follows and separated by vertical bars '\|' <br/><br/>**PCR_VIVAX;arthropod infection status;Plasmodium vivax;present**<br/><br/>Spaces before/after the semicolon and vertical bar delimiters are allowed.<br/><br/>PCR_VIVAX is the protocol type (defined in study_protocols in config file). The next three values are the Observable, Attribute and Value that describe the phenotype (GMOD Chado style) and each value must be a term described in the study_terms section of the config file. Currently only pathogen infection status phenotypes are supported. The value for positive assays must match /^(?:present\|positive\|confirmed\|detected)/i|yes, pipe delimited
 
 SAF2.0 additions
+----------------
+
+Note that comment columns should not be needed any more. Use custom columns instead.
+
 
 Field Name |Format|Requirement|Details
 -----------|------|-------|-----------
+location_ID | string | Mandatory | Identifier for collection event e.g. ABC_2018_site_A
+location_precision | string, controlled | Optional??? | use a term from 'geolocation precision' branch of popbio.owl
+location_provenance | string, controlled | Optional??? | use a term from 'geolocation provenance' branch of popbio.owl
 location_comment|string|Optional|free text comment about the collection site
 any_other_column_name|string or number|Optional|must be specified in config file, see below
 
@@ -121,7 +128,7 @@ study_terms :
   Borrelia miyamotoi : NCBITaxon_47466
   Babesia microti : NCBITaxon_5868
 
-# SAF2.0 addition
+# SAF2.0 custom columns
 columns :
   # mark a required column as not-required (not recommended!)
   # with an optional default value to be used instead
@@ -143,12 +150,14 @@ Custom column configuration fields
 Field | Default | Allowed values | Requirement | Details
 ------|---------|--------|----------|------
 heading | | the column heading, exactly as it appears | Mandatory | You may add new columns this way
-term | | an ontology source term for the new "variable", e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory | This will likely need to be added to the popbio.owl file too
+term | | an ontology source term for the new "variable", e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
 required | `true` | `true`, `false` | Optional | Use this to disable mandatory columns (not recommended!)
 default | | depends on `type` | Optional | If the column is missing or if there is no value in a particular row, this value will be used instead
-type | `string` | `string`, `number`, `date` | Optional |  type of value expected (this will be validated as far as possible)
-describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Optional | Which aspect of the data does this column describe?
+type | `string` | `string`, `number`, `date`, `id`, `latitude`, `longitude` | Optional |  type of value expected (this will be validated as far as possible). (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...)
+describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Optional | Which aspect of the data does this column describe? 
 controlled | `true` | `true`, `false` | Optional | For string type columns, must there be ontology terms in study_terms for all values?
 protocol | | a `study_protocol_name` from `study_protocols` | Required for `describes: xxx assay` columns; not allowed for others | e.g. `PCR` in the above example. Note that this will blanket apply the protocol to all rows with non-empty values for this column. This differs from the built-in columns `species_identification_method` and `trap_type` that apply protocols row-wise to `organism identification assay` and `collection` assays/events respectively. 
+deprecated | | "deprecation message" | Optional | Used to deprecated SAF1.0 built-in columns. Provide a helpful message.
+multivalued | `false` | `true`, `false` | Optional | 
 
-See default-column-config.yaml for the built-in column definitions
+See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions
