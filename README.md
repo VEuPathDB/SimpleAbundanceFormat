@@ -1,6 +1,8 @@
 # SimpleAbundanceFormat
 Formerly known as PopBio-interchange-format. This is a new repo that will build on https://github.com/chowington/PopBio-interchange-format and add 2.0 features.
 
+This is VEuPathDB's implementation of MIReAD (https://www.nature.com/articles/s41597-019-0042-5) as the prefered file format for abundance and pathogen surveillance data. Internally we convert it to ISA-Tab with the "SAF-Wizard" and then load into our system.
+
 Description of Simple Abundance Format (SAF)
 --------------------------------------------
 Field Name |Format|Requirement|Details|Multi-valued?
@@ -27,10 +29,18 @@ developmental_stage|string|Mandatory|developmental stage e.g. adult
 combined_feeding_and_gonotrophic_status|string|Optional|e.g. fed, unfed, semi-gravid, gravid
 sex|string|Mandatory|sex of specimens e.g. female/male/mixed
 sample_count|integer|Mandatory|count of specimens from collection
-collection_comment|string|Optional|free text comment about the collection site or event
+collection_comment|string|Optional|free text comment about the collection event
 sample_comment|string|Optional|free text comment about the sample material
 species_comment|string|Optional|free text comments about the species identification process
 phenotypes|string|Optional| phenotype should be formatted as follows and separated by vertical bars '\|' <br/><br/>**PCR_VIVAX;arthropod infection status;Plasmodium vivax;present**<br/><br/>Spaces before/after the semicolon and vertical bar delimiters are allowed.<br/><br/>PCR_VIVAX is the protocol type (defined in study_protocols in config file). The next three values are the Observable, Attribute and Value that describe the phenotype (GMOD Chado style) and each value must be a term described in the study_terms section of the config file. Currently only pathogen infection status phenotypes are supported. The value for positive assays must match /^(?:present\|positive\|confirmed\|detected)/i|yes, pipe delimited
+
+SAF2.0 additions
+
+Field Name |Format|Requirement|Details
+-----------|------|-------|-----------
+location_comment|string|Optional|free text comment about the collection site
+any_other_column_name|string or number|Optional|must be specified in config file, see below
+
 
 
 Example configuration file
@@ -110,4 +120,34 @@ study_terms :
   Borrelia burgdorferi sensu lato : NCBITaxon_139
   Borrelia miyamotoi : NCBITaxon_47466
   Babesia microti : NCBITaxon_5868
+
+# SAF2.0 addition
+columns :
+  # mark a required column as not-required (not recommended!)
+  # with an optional default value to be used instead
+  - heading : trap_duration
+    required : false
+    default : 1
+
+  # a totally new column (will be required: true by default)
+  # values must have ontology terms provided in study_terms when allow_freetext is false
+  - heading : host_species
+    required : true
+    type : string
+    describes : collection
+    controlled : false
 ```
+
+Custom column configuration fields
+
+Field | Default | Details
+------|---------|--------
+heading | none | the column heading, exactly as it appears; you may add new columns this way
+required | true | true/false; use this to disable mandatory columns (not recommended!)
+default | none | if the column is missing or if there is no value in a particular row, this value will be used instead
+type | string | string/number/date; type of value expected (this will be validated as far as possible)
+describes | sample | location/collection/sample/assay/species; which aspect of the data does this column describe?
+controlled | true | true/false; for string type columns, must there be ontology terms in study_terms for all values?
+protocol | none | only applies to (and is required for) `describes: assay` columns, use the study_protocol_name reference, e.g. `PCR` in the above example  
+
+See default-column-config.yaml for the built-in column definitions
