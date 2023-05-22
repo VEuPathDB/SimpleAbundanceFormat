@@ -148,6 +148,6 @@ default | none | if the column is missing or if there is no value in a particula
 type | string | string/number/date; type of value expected (this will be validated as far as possible)
 describes | sample | which aspect of the data does this column describe? must be exactly one of these: <br/> `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay`
 controlled | true | true/false; for string type columns, must there be ontology terms in study_terms for all values?
-protocol | none | only applies to (and is required for) `describes: assay` columns, use the study_protocol_name reference, e.g. `PCR` in the above example  
+protocol | none | only applies to (and is required for) `describes: xxx assay` columns, use the study_protocol_name from the study_protocols section (adding a section if required), e.g. `PCR` in the above example  
 
 See default-column-config.yaml for the built-in column definitions
