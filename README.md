@@ -141,7 +141,7 @@ columns :
 Custom column configuration fields
 
 Field | Default | Allowed values | Requirement | Details
-------|---------|--------
+------|---------|--------|----------|------
 heading | | the column heading, exactly as it appears | Mandatory | You may add new columns this way
 term | | an ontology source term for the new "variable", e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory | This will likely need to be added to the popbio.owl file too
 required | `true` | `true`, `false` | Optional | Use this to disable mandatory columns (not recommended!)
