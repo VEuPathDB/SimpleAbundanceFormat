@@ -1,94 +1,102 @@
+# TO DO:
+# refactor this to hash of hashes (I did the first couple)
+# this allows us to merge the user's config file with the default config file with ease
+
 columns:
-  - heading: location_ID
-    type: id
+  location_ID:
+    value_type: id
     describes: location
 
-  - heading: collection_ID
-    type: id
+  collection_ID:
+    value_type: id
     describes: collection
 
-  - heading: sample_ID
-    type: id
+  sample_ID:
+    value_type: id
     describes: sample
 
+  # TO DO THE REST...
   - heading: collection_start_date
-    type: date
+    value_type: date
     describes: collection
     term: EUPATH_0043256
 
   - heading: collection_end_date
-    type: date
+    value_type: date
     describes: collection
     term: EUPATH_0043257
 
-# not `type: id` because trap is not one of our core entity types 
+# not `value_type: id` because trap is not one of our core entity types 
   - heading: trap_ID
-    type: string
+    value_type: string
     describes: collection
-    controlled: false
     required: false
     term: POPBIO_8000007
 
   - heading: GPS_latitude
-    type: latitude
+    value_type: latitude
     describes: location
     term: OBI_0001620
 
   - heading: GPS_longitude
-    type: longitude
+    value_type: longitude
     describes: location
     term: OBI_0001621
 
   - heading: GPS_qualifier
-    type: string
+    value_type: string
     describes: location
-    controlled: false
     deprecated: use location_precision and location_provenance instead
 
   - heading: location_precision
-    type: string
+    value_type: term
+    term_lookup: location_qualifiers
     describes: location
     required: false
     term: EUPATH_0043212
 
   - heading: location_provenance
-    type: string
+    value_type: term
+    term_lookup: location_qualifiers
     describes: location
     required: false
     term: EUPATH_0043211
 
   - heading: location_description
-    type: string
+    value_type: string
     describes: location
     required: false
-    controlled: false
     term: EUPATH_0000542
 
   - heading: location_country
-    type: string
+    value_type: string
     describes: location
     required: false
-    controlled: false
     term: OBI_0001627
 
   - heading: location_ADM1
-    type: string
+    value_type: string
     describes: location
     required: false
-    controlled: false
     term: ENVO_00000005
 
   - heading: location_ADM2
-    type: string
+    value_type: string
     describes: location
     required: false
-    controlled: false
     term: ENVO_00000006
 
   - heading: trap_type
-    type: string
+    value_type: string
     describes: collection
-    required: true
+    required: false
     deprecated: use collection_method and collection_device instead
 
+  - heading: collection_method
+    value_type: string
+
+
+
+location_qualifiers:
+  abc : DEF_0123456
 

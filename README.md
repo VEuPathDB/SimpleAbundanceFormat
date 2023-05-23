@@ -140,7 +140,7 @@ columns :
   # values must have ontology terms provided in study_terms when allow_freetext is false
   - heading : host_species
     required : true
-    type : string
+    value_type : string
     describes : collection
     controlled : false
 ```
@@ -150,14 +150,15 @@ Custom column configuration fields
 Field | Default | Allowed values | Requirement | Details
 ------|---------|--------|----------|------
 heading | | the column heading, exactly as it appears | Mandatory | You may add new columns this way
-term | | an ontology source term for the new "variable", e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
-required | `true` | `true`, `false` | Optional | Use this to disable mandatory columns (not recommended!)
+term | | an ontology source term for the field/variable/column, e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
+required | `true` | `true`, `false` | Optional | Use this to disable mandatory "built-in" columns (not recommended!)
 default | | depends on `type` | Optional | If the column is missing or if there is no value in a particular row, this value will be used instead
-type | `string` | `string`, `number`, `date`, `id`, `latitude`, `longitude` | Optional |  type of value expected (this will be validated as far as possible). (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...)
+value_type | `string` | `string`, `term`, `number`, `date`, `id`, `latitude`, `longitude` | Optional | type of value expected (this will be validated as far as possible). `term` type means that ontology term lookups must usually be provided in `study_terms` (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...)
 describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Optional | Which aspect of the data does this column describe? 
-controlled | `true` | `true`, `false` | Optional | For string type columns, must there be ontology terms in study_terms for all values?
 protocol | | a `study_protocol_name` from `study_protocols` | Required for `describes: xxx assay` columns; not allowed for others | e.g. `PCR` in the above example. Note that this will blanket apply the protocol to all rows with non-empty values for this column. This differs from the built-in columns `species_identification_method` and `trap_type` that apply protocols row-wise to `organism identification assay` and `collection` assays/events respectively. 
 deprecated | | "deprecation message" | Optional | Used to deprecated SAF1.0 built-in columns. Provide a helpful message.
-multivalued | `false` | `true`, `false` | Optional | 
+multivalued | `false` | `true`, `false` | Optional |
+delimiter | ; |  | Optional | character used to delimit multiple values (white-space before and after will be ignored)
+term_lookup | `study_terms` | `study_terms`, `study_sexes`, `study_species`, `study_developmental_stages` | Optional | name of lookup section in config file if the column is `value_type: term`.
 
 See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions
