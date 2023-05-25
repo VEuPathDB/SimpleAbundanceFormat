@@ -149,8 +149,7 @@ Custom column configuration fields
 
 Field | Default | Allowed values | Requirement | Details
 ------|---------|--------|----------|------
-heading | | the column heading, exactly as it appears | Mandatory | You may add new columns this way
-term | | an ontology source term for the field/variable/column, e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
+column_term | | an ontology source term for the field/variable/column, e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
 required | `true` | `true`, `false` | Optional | Use this to disable mandatory "built-in" columns (not recommended!)
 default | | depends on `type` | Optional | If the column is missing or if there is no value in a particular row, this value will be used instead
 value_type | `string` | `string`, `term`, `number`, `date`, `id`, `latitude`, `longitude` | Optional | type of value expected (this will be validated as far as possible). `term` type means that ontology term lookups must usually be provided in `study_terms` (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...)

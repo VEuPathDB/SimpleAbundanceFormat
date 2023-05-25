@@ -15,84 +15,83 @@ columns:
     value_type: id
     describes: sample
 
-  # TO DO THE REST...
-  - heading: collection_start_date
+  collection_start_date:
     value_type: date
     describes: collection
-    term: EUPATH_0043256
+    column_term: EUPATH_0043256
 
-  - heading: collection_end_date
+  collection_end_date:
     value_type: date
     describes: collection
-    term: EUPATH_0043257
+    column_term: EUPATH_0043257
 
-# not `value_type: id` because trap is not one of our core entity types 
-  - heading: trap_ID
-    value_type: string
+
+  trap_ID:
+    value_type: string # not `id` because trap is not one of our core entity types 
     describes: collection
     required: false
-    term: POPBIO_8000007
+    column_term: POPBIO_8000007
 
-  - heading: GPS_latitude
+  GPS_latitude:
     value_type: latitude
     describes: location
-    term: OBI_0001620
+    column_term: OBI_0001620
 
-  - heading: GPS_longitude
+  GPS_longitude:
     value_type: longitude
     describes: location
-    term: OBI_0001621
+    column_term: OBI_0001621
 
-  - heading: GPS_qualifier
+  GPS_qualifier:
     value_type: string
     describes: location
     deprecated: use location_precision and location_provenance instead
 
-  - heading: location_precision
+  location_precision:
     value_type: term
     term_lookup: location_qualifiers
     describes: location
     required: false
-    term: EUPATH_0043212
+    column_term: EUPATH_0043212
 
-  - heading: location_provenance
+  location_provenance:
     value_type: term
     term_lookup: location_qualifiers
     describes: location
     required: false
-    term: EUPATH_0043211
+    column_term: EUPATH_0043211
 
-  - heading: location_description
+  location_description:
     value_type: string
     describes: location
     required: false
-    term: EUPATH_0000542
+    column_term: EUPATH_0000542
 
-  - heading: location_country
+  location_country:
     value_type: string
     describes: location
     required: false
-    term: OBI_0001627
+    column_term: OBI_0001627
 
-  - heading: location_ADM1
+  location_ADM1:
     value_type: string
     describes: location
     required: false
-    term: ENVO_00000005
+    column_term: ENVO_00000005
 
-  - heading: location_ADM2
+  location_ADM2:
     value_type: string
     describes: location
     required: false
-    term: ENVO_00000006
+    column_term: ENVO_00000006
 
-  - heading: trap_type
+  trap_type:
     value_type: string
     describes: collection
     required: false
     deprecated: use collection_method and collection_device instead
 
-  - heading: collection_method
+  collection_method:
     value_type: string
 
 
