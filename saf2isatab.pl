@@ -52,5 +52,6 @@ my $columns = $hashified->fields;
 print "@$columns\n";
 
 my $isa_writer = Bio::Parser::ISATab->new(directory => $output_dir, protocols_first=>1);
+# need to set $config->{study_file_name} somewhere to the s_samples file
 $isa_writer->write( { ontologies => [], studies => [ $config ] } );
 
