@@ -1,0 +1,33 @@
+- name: location
+  type: material
+  isa_key: sources
+  isa_name: Source
+
+  children:
+    - name: collection
+      type: material
+      isa_key: samples
+      isa_name: Sample
+
+      children:
+        - name: sample
+          type: material
+          isa_key: samples
+          isa_name: Sample
+
+          children:
+            - name: organism identification assay
+              type: assay
+
+            - name: genotyping assay
+              type: assay
+
+            - name: insecticide resistance assay
+              type: assay
+
+            - name: pathogen detection assay
+              type: assay
+
+            - name: blood meal assay
+              type: assay
+

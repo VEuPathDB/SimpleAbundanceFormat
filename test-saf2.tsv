@@ -1,4 +1,3 @@
 collection_ID	sample_ID	collection_start_date	collection_end_date	GPS_latitude	GPS_longitude	species	species_identification_method
 mycollection01	mysample01	2002-02-02		2002-02-03		12.34		9.87		Anopheles darlingi	PCR
 mycollection01	mysample02	2002-02-02		2002-02-03		12.34		9.87		Anopheles albimanus	PCR
-
