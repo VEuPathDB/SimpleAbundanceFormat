@@ -62,8 +62,9 @@ die "FATAL ERROR: root entity (in '$entities_filename') must be a material type 
   unless ($entities->[0]{type} eq 'material');
 
 my $root_entity = $entities->[0];
+my $flat_entities = flatten($root_entity);
 
-validate_column_config($column_config, $root_entity);
+validate_column_config($column_config, $flat_entities);
 
 
 # load the actual data
@@ -124,7 +125,7 @@ sub add_material {
 
 
 sub validate_column_config {
-  my ($column_config, $root_entity) = @_;
+  my ($column_config, $flat_entities) = @_;
 
   # check that every column definition has `describes` and `value_type`
 
@@ -132,6 +133,16 @@ sub validate_column_config {
 
   die "FATAL ERROR: column configuration is missing required attributes 'describes' and/or 'value_type' for columns: ".join(', ', @bad)."\n" if (@bad);
 
-  
+  # now check that all the columns `describe` an existing entity
+  my %entity_names = map { ($_->{name} => 1) } @$flat_entities;
+  my @worse = grep { !$entity_names{$column_config->{$_}{describes}} } keys %$column_config;
 
+  die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
+    if (@worse);
+}
+
+
+sub flatten {
+  my ($entity) = @_;
+  return [ $entity, map { @{ flatten($_) } } @{$entity->{children}} ];
 }

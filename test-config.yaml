@@ -11,15 +11,6 @@ study_species :
 
 columns:
 # switch off some mandatory columns while developing
-  trap_type:
-    required: false
-
-  trap_number:
-    required: false
-
-  trap_duration:
-    required: false
-
   developmental_stage:
     required: false
 
