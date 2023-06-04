@@ -174,6 +174,14 @@ sub validate_columns {
 
   die "FATAL ERROR: the following required columns are missing from the input file: ".join(', ', @missing)."\n"
     if (@missing);
+
+
+  my @unconfigured = grep {
+    !exists $column_config->{$_}
+  } @$column_keys;
+
+  warn "WARNING: the following data file columns are not configured and will be ignored: ".join(', ', @unconfigured)."\n"
+    if (@unconfigured);
 }
 
 
