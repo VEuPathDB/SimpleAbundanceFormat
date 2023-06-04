@@ -17,6 +17,7 @@ use Text::CSV::Hashify; # previously we appended a version number 0.11
 use Bio::Parser::ISATab;
 use FindBin;
 use Hash::Merge::Simple qw/merge/;
+use Data::Dumper;
 
 my $default_config_filename = $FindBin::Bin."/default-column-config.yaml";
 my $defaultConfig = LoadFile($default_config_filename);
@@ -41,11 +42,13 @@ my $config = merge $defaultConfig, $userConfig;
 
 # pull out the column config
 my $column_config = delete $config->{columns};
+# print Dumper($column_config); exit;
 # and some other non ISA-Tab bits
 my $study_species = delete $config->{study_species};
 my $study_developmental_stages = delete $config->{study_developmental_stages};
 my $study_sexes = delete $config->{study_sexes};
 my $study_terms = delete $config->{study_terms};
+my $location_qualifiers = delete $config->{location_qualifiers};
 
 # what remains is ISA-Tab Study material
 my $study = $config;
@@ -53,8 +56,15 @@ my $study = $config;
 # load the entity graph
 my $entities = LoadFile($entities_filename);
 
-die "root entity (in '$entities_filename') must be a material type entity\n"
+die "FATAL ERROR: there must be exactly one root entity (in '$entities_filename')\n"
+  if (@$entities != 1);
+die "FATAL ERROR: root entity (in '$entities_filename') must be a material type entity\n"
   unless ($entities->[0]{type} eq 'material');
+
+my $root_entity = $entities->[0];
+
+validate_column_config($column_config, $root_entity);
+
 
 # load the actual data
 my $hashified = Text::CSV::Hashify->new({
@@ -78,6 +88,8 @@ foreach my $sample_ID (@$sample_IDs) {
   warn "trying >$sample_ID<\n";
   my $row = $hashified->record($sample_ID);
 
+  # add material entities (descending the entity graph into assay entities also)
+  add_material($root_entity, $row, $sources, $study_assays, $study_protocols);
 }
 
 
@@ -87,3 +99,39 @@ foreach my $sample_ID (@$sample_IDs) {
 my $isa_writer = Bio::Parser::ISATab->new(directory => $output_dir, protocols_first=>1);
 $isa_writer->write( { ontologies => [], studies => [ $study ] } );
 
+
+
+sub add_material {
+  my ($entity, $row, $isaref, $study_assays, $study_protocols) = @_;
+
+  # figure out an ID for this entity
+  # this is simple if all *_ID fields are mandatory
+  # otherwise we'll need to generate default IDs (which we can add later if providing, e.g. location_ID is a hassle)
+
+  my ($id_column_name) =
+    grep { $column_config->{$_}{describes} eq $entity->{name} &&
+	   $column_config->{$_}{value_type} eq 'id' }
+    keys %$column_config;
+
+  warn "id column is $id_column_name\n";
+  foreach my $child_entity (@{$entity->{children}}) {
+    # check material or assay
+    
+
+  }
+
+}
+
+
+sub validate_column_config {
+  my ($column_config, $root_entity) = @_;
+
+  # check that every column definition has `describes` and `value_type`
+
+  my @bad = grep { !$column_config->{$_}{describes} || !$column_config->{$_}{value_type} } keys %$column_config;
+
+  die "FATAL ERROR: column configuration is missing required attributes 'describes' and/or 'value_type' for columns: ".join(', ', @bad)."\n" if (@bad);
+
+  
+
+}

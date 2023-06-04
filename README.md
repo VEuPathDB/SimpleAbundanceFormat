@@ -46,6 +46,8 @@ location_ID | string | Mandatory | Identifier for collection event e.g. ABC_2018
 location_precision | string, controlled | Optional??? | use a term from 'geolocation precision' branch of popbio.owl
 location_provenance | string, controlled | Optional??? | use a term from 'geolocation provenance' branch of popbio.owl
 location_comment|string|Optional|free text comment about the collection site
+collection_method | protocol_ref | Mandatory | replaces deprecated `trap_type` - should be study_protocol_name 
+collection_device | term | Optional | replaces deprecated `trap_type`
 any_other_column_name|string or number|Optional|must be specified in config file, see below
 
 
@@ -131,29 +133,27 @@ study_terms :
 # SAF2.0 custom columns
 columns :
   # mark a required column as not-required (not recommended!)
-  # with an optional default value to be used instead
-  - heading : trap_duration
+  - heading : collection_duration
     required : false
-    default : 1
 
-  # a totally new column (will be required: true by default)
-  # values must have ontology terms provided in study_terms when allow_freetext is false
+  # a totally new column
+  # values must be ontology terms provided in (new) study_hosts section of config file
   - heading : host_species
     required : true
-    value_type : string
+    value_type : term
+    term_lookup : study_hosts
     describes : collection
-    controlled : false
 ```
 
 Custom column configuration fields
 
 Field | Default | Allowed values | Requirement | Details
 ------|---------|--------|----------|------
-column_term | | an ontology source term for the field/variable/column, e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for `type: id` columns | This will likely need to be added to the popbio.owl file too
-required | `true` | `true`, `false` | Optional | Use this to disable mandatory "built-in" columns (not recommended!)
-default | | depends on `type` | Optional | If the column is missing or if there is no value in a particular row, this value will be used instead
-value_type | `string` | `string`, `term`, `number`, `date`, `id`, `latitude`, `longitude` | Optional | type of value expected (this will be validated as far as possible). `term` type means that ontology term lookups must usually be provided in `study_terms` (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...)
-describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Optional | Which aspect of the data does this column describe? 
+column_term | | an ontology source term for the field/variable/column, e.g. `EUPATH_0123456` or `POPBIO_0654321` | Mandatory except for columns whose `value_type` is `id`, `comment` or `protocol_ref` | This will likely need to be added to the popbio.owl file too
+required | `true` | `true`, `false` | Optional | Use this to disable mandatory "built-in" columns (not recommended!) - note that `required` columns with `default` values do not have to be provided by the user 
+default | | depends on `type` | Optional | If the column is `required` but if the entire column or particular values are missing, this value will be used to fill in the gaps
+value_type | no default | `string`, `term`, `number`, `date`, `id`, `latitude`, `longitude`, `protocol_ref`, `comment` | Mandatory | type of value expected (this will be validated as far as possible). `term` type means that ontology term lookups must usually be provided in `study_terms` (`id` is a special type (e.g. for `collection_ID` built-in column) - it probably won't be available for custom columns. TBC...; `protocol_ref` means that the string value should exactly match one of the `study_protocol_name` values in the `study_protocols` section of the user config file; `comment` type columns hold free text and do not require a `column_term`)
+describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Mandatory | Which aspect of the data does this column describe? 
 protocol | | a `study_protocol_name` from `study_protocols` | Required for `describes: xxx assay` columns; not allowed for others | e.g. `PCR` in the above example. Note that this will blanket apply the protocol to all rows with non-empty values for this column. This differs from the built-in columns `species_identification_method` and `trap_type` that apply protocols row-wise to `organism identification assay` and `collection` assays/events respectively. 
 deprecated | | "deprecation message" | Optional | Used to deprecated SAF1.0 built-in columns. Provide a helpful message.
 multivalued | `false` | `true`, `false` | Optional |
