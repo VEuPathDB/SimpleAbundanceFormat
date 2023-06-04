@@ -8,6 +8,11 @@
 # (can handle tsv or csv data)
 #
 
+#
+# TO DO: use ordered hashrefs to preserve order
+#
+
+
 use strict;
 use warnings;
 
@@ -97,7 +102,7 @@ foreach my $sample_ID (@$sample_IDs) {
   my $row = $hashified->record($sample_ID);
 
   # add material entities (descending the entity graph into assay entities also)
-  add_material($root_entity, $row, $sources, $study_assays, $study_protocols);
+  add_material($root_entity, $row, $sources, $study_assays, $study_protocols, $column_keys, $column_config);
 }
 
 
@@ -110,7 +115,7 @@ $isa_writer->write( { ontologies => [], studies => [ $study ] } );
 
 
 sub add_material {
-  my ($entity, $row, $isaref, $study_assays, $study_protocols) = @_;
+  my ($entity, $row, $isaref, $study_assays, $study_protocols, $column_keys, $column_config) = @_;
 
   # figure out an ID for this entity
   # this is simple if all *_ID fields are mandatory
@@ -123,15 +128,34 @@ sub add_material {
 
   die "FATAL ERROR: couldn't find ID column name for $entity->{name}\n"
     unless ($id_column_name);
-  
-  warn "id column is $id_column_name\n";
+
+  my $entity_id = $row->{$id_column_name};
+  # warn "id column is $id_column_name and got $entity_id\n";
 
 
+  # make a hashref to put the new material nodes in, e.g.
+  # $study->{sources}{some_source_id} = ...
+
+  $isaref->{$entity->{isa_key}} //= {};
+  my $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id};
+
+  # only make a node once (i.e. don't reprocess a location multiple times for each collection and sample)
+  if (!defined $new_isaref) {
+    $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= {};
+
+    # get the union of column headings that `describes` this entity
+    # a) input columns
+    # b) mandatory columns
+    # process these columns into ISA characteristics, comments and protocol refs
+
+    my $relevant_columns = [ grep { } @$column_config ];
+
+  }
   # recurse down entity tree
   foreach my $child_entity (@{$entity->{children}}) {
     # check material or assay
     
-
+    # recurse using $child_entity and $new_isaref
   }
 
 }
