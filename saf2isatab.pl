@@ -19,6 +19,10 @@ use FindBin;
 use Hash::Merge::Simple qw/merge/;
 use Data::Dumper;
 
+#
+# NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
+# are loaded as Perl booleans - although they don't really exist, so just 1 and undefined.
+#
 my $default_config_filename = $FindBin::Bin."/default-column-config.yaml";
 my $defaultConfig = LoadFile($default_config_filename);
 
@@ -64,6 +68,7 @@ die "FATAL ERROR: root entity (in '$entities_filename') must be a material type 
 my $root_entity = $entities->[0];
 my $flat_entities = flatten($root_entity);
 
+# make sure column config contains required info
 validate_column_config($column_config, $flat_entities);
 
 
@@ -77,7 +82,9 @@ my $hashified = Text::CSV::Hashify->new({
 my $sample_IDs = $hashified->keys;
 my $column_keys = $hashified->fields;
 
-print "@$column_keys\n";
+# make sure no required columns are missing from column_keys
+# and warn about any unconfigured columns
+validate_columns($column_keys, $column_config);
 
 $study->{study_file_name} = 's_samples.txt';
 
@@ -114,7 +121,13 @@ sub add_material {
 	   $column_config->{$_}{value_type} eq 'id' }
     keys %$column_config;
 
+  die "FATAL ERROR: couldn't find ID column name for $entity->{name}\n"
+    unless ($id_column_name);
+  
   warn "id column is $id_column_name\n";
+
+
+  # recurse down entity tree
   foreach my $child_entity (@{$entity->{children}}) {
     # check material or assay
     
@@ -139,6 +152,28 @@ sub validate_column_config {
 
   die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
     if (@worse);
+
+  # this has side effects!
+  # add `required: true` to any column that doesn't have it
+  map { $_->{required} //= 1 } values %$column_config;
+
+}
+
+
+sub validate_columns {
+  my ($column_keys, $column_config) = @_;
+
+  # make a hash look-up
+  my %column_keys = map { ($_ => 1) } @$column_keys;
+
+  # are all the required columns in the input file's header?
+  #
+  my @missing = grep {
+      ($column_config->{$_}{required} && !defined $column_config->{$_}{default}) && !$column_keys{$_}
+  } keys %$column_config;
+
+  die "FATAL ERROR: the following required columns are missing from the input file: ".join(', ', @missing)."\n"
+    if (@missing);
 }
 
 

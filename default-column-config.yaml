@@ -41,6 +41,7 @@ columns:
   GPS_qualifier:
     value_type: string
     describes: location
+    required: false
     deprecated: use location_precision and location_provenance instead
 
   location_precision:
@@ -90,7 +91,6 @@ columns:
   collection_method:
     value_type: protocol_ref
     describes: collection
-    required: true
     
   collection_device:
     value_type: term
@@ -107,7 +107,6 @@ columns:
   trap_number:
     value_type: number
     describes: collection
-    required: true
     default: 1
     description: the number of traps, not an ID number!
     column_term: EUPATH_0043046
@@ -121,7 +120,6 @@ columns:
   collection_duration:
     value_type: number
     describes: collection
-    required: true
     default: 1
     description: duration of collection in days
     column_term: OBI_0002988
@@ -129,20 +127,17 @@ columns:
   species:
     value_type: term
     term_lookup: study_species
-    required: true
     describes: organism identification assay
     column_term: EUPATH_0043194
 
   species_identification_method:
     value_type: protocol_ref
-    required: true
     describes: organism identification assay
 
   developmental_stage:
     value_type: term
     term_lookup: study_developmental_stages
     describes: sample
-    required: true
     column_term: UBERON_0000105
 
   combined_feeding_and_gonotrophic_status:
@@ -156,30 +151,32 @@ columns:
     value_type: term
     term_lookup: study_sexes
     describes: sample
-    required: true
     column_term: PATO_0000047
 
   sample_count:
     value_type: number
     describes: sample
-    required: true
     column_term: EUPATH_0043155
     
   location_comment:
     value_type: comment
     describes: location
+    required: false
 
   collection_comment:
     value_type: comment
     describes: collection
+    required: false
 
   sample_comment:
     value_type: comment
     describes: sample
+    required: false
 
   species_comment:
     value_type: comment
     describes: organism identification assay
+    required: false
 
   # to do? add pathogen_comment, insecticide_resistance_comment etc?
 

@@ -20,5 +20,10 @@ columns:
   sample_count:
     required: false
 
-
+study_protocols:
+  - study_protocol_name : COLLECT
+    study_protocol_type : citizen science collection
+    study_protocol_type_term_source_ref : EUPATH
+    study_protocol_type_term_accession_number : EUPATH_0043237
+    study_protocol_description :  Residents of the state of Maine, USA, sent in ticks they find (usually on themself) to a central laboratory for analysis.
 
