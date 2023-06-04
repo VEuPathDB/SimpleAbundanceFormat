@@ -9,6 +9,15 @@ study_species :
   Anopheles darlingi : NCBITaxon_43151
   Anopheles albimanus : NCBITaxon_7167
 
+study_sexes:
+
+study_developmental_stages:
+
+study_terms:
+
+
+
+
 columns:
 # switch off some mandatory columns while developing
   developmental_stage:

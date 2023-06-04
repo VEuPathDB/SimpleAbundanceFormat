@@ -9,7 +9,12 @@
 #
 
 #
-# TO DO: use ordered hashrefs to preserve order
+# TO DO:
+#
+#- use ordered hashrefs to preserve order
+#
+#- do range checking on lat/long and date format checks
+#
 #
 
 
@@ -50,16 +55,11 @@ die "problem reading '$config_filename'\n" unless $userConfig;
 my $config = merge $defaultConfig, $userConfig;
 
 # pull out the column config
-my $column_config = delete $config->{columns};
+my $column_config = $config->{columns};
 # print Dumper($column_config); exit;
-# and some other non ISA-Tab bits
-my $study_species = delete $config->{study_species};
-my $study_developmental_stages = delete $config->{study_developmental_stages};
-my $study_sexes = delete $config->{study_sexes};
-my $study_terms = delete $config->{study_terms};
-my $location_qualifiers = delete $config->{location_qualifiers};
 
-# what remains is ISA-Tab Study material
+# a subset of the config is also the basis of the ISA-Tab study datastructure
+# the ISA-Tab writer ignores the extra config information
 my $study = $config;
 
 # load the entity graph
@@ -74,7 +74,7 @@ my $root_entity = $entities->[0];
 my $flat_entities = flatten($root_entity);
 
 # make sure column config contains required info
-validate_column_config($column_config, $flat_entities);
+validate_config($config, $flat_entities);
 
 
 # load the actual data
@@ -84,16 +84,22 @@ my $hashified = Text::CSV::Hashify->new({
 					 sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
 					});
 
+# an arrayref of the sample IDs in the input file
 my $sample_IDs = $hashified->keys;
+
+# an arrayref of the column headings in the input file
 my $column_keys = $hashified->fields;
 
 # make sure no required columns are missing from column_keys
 # and warn about any unconfigured columns
 validate_columns($column_keys, $column_config);
 
+# append mandatory columns that have default values
+$column_keys = add_mandatory_columns($column_keys, $column_config);
+
+
 $study->{study_file_name} = 's_samples.txt';
 
-my $sources = $study->{sources} = {};
 my $study_assays = $study->{study_assays} = [];
 my $study_protocols = $study->{study_protocols} //= [];
 
@@ -102,7 +108,7 @@ foreach my $sample_ID (@$sample_IDs) {
   my $row = $hashified->record($sample_ID);
 
   # add material entities (descending the entity graph into assay entities also)
-  add_material($root_entity, $row, $sources, $study_assays, $study_protocols, $column_keys, $column_config);
+  add_material($root_entity, $row, $study, $column_keys, $config);
 }
 
 
@@ -115,8 +121,9 @@ $isa_writer->write( { ontologies => [], studies => [ $study ] } );
 
 
 sub add_material {
-  my ($entity, $row, $isaref, $study_assays, $study_protocols, $column_keys, $column_config) = @_;
+  my ($entity, $row, $isaref, $column_keys, $config_and_study) = @_;
 
+  my $column_config = $config_and_study->{columns};
   # figure out an ID for this entity
   # this is simple if all *_ID fields are mandatory
   # otherwise we'll need to generate default IDs (which we can add later if providing, e.g. location_ID is a hassle)
@@ -143,44 +150,64 @@ sub add_material {
   if (!defined $new_isaref) {
     $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= {};
 
-    # get the union of column headings that `describes` this entity
-    # a) input columns
-    # b) mandatory columns
-    # process these columns into ISA characteristics, comments and protocol refs
+    my $relevant_columns = [ grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
 
-    my $relevant_columns = [ grep { } @$column_config ];
+    foreach my $column (@$relevant_columns) {
+      my $col_config = $column_config->{$column};
+      my $col_term = $col_config->{column_term};
+      if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
+	$new_isaref->{characteristics}{"$column (TERM:$col_term)"}{value} = $row->{$column};
+      } elsif ($col_config->{value_type} eq 'term') {
+	my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
 
+      }
+    }
   }
+
   # recurse down entity tree
   foreach my $child_entity (@{$entity->{children}}) {
     # check material or assay
-    
-    # recurse using $child_entity and $new_isaref
+    if ($child_entity->{type} eq 'material') {
+      add_material($child_entity, $row, $new_isaref, $column_keys, $config_and_study);
+    }
   }
 
 }
 
 
-sub validate_column_config {
-  my ($column_config, $flat_entities) = @_;
+sub validate_config {
+  my ($config, $flat_entities) = @_;
 
+  my $column_config = $config->{columns};
   # check that every column definition has `describes` and `value_type`
-
   my @bad = grep { !$column_config->{$_}{describes} || !$column_config->{$_}{value_type} } keys %$column_config;
-
   die "FATAL ERROR: column configuration is missing required attributes 'describes' and/or 'value_type' for columns: ".join(', ', @bad)."\n" if (@bad);
 
   # now check that all the columns `describe` an existing entity
   my %entity_names = map { ($_->{name} => 1) } @$flat_entities;
   my @worse = grep { !$entity_names{$column_config->{$_}{describes}} } keys %$column_config;
-
   die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
     if (@worse);
+
+  # check that every non-deprecated term|number|string|date|latitude|longitude column has a column_term
+  my @terrible = grep {
+    $column_config->{$_}{value_type} =~ /^(term|number|string|date|latitude|longitude)$/ &&
+    !$column_config->{$_}{deprecated} &&
+    !$column_config->{$_}{column_term}
+  } keys %$column_config;
+  die "FATAL ERROR: these columns don't have a column_term (e.g. a variable IRI)".join(', ', @terrible)."\n"
+    if (@terrible);
+
+  # check that any term_lookup values exist in the $config hash as first level keys
+  my @dreadful = grep {
+    $column_config->{$_}{term_lookup} && !exists $config->{$column_config->{$_}{term_lookup}}
+  } keys %$column_config;
+  die "FATAL ERROR: these columns have term_lookup values that are not defined in the config file:".join(', ', @dreadful)."\n"
+    if (@dreadful);
 
   # this has side effects!
   # add `required: true` to any column that doesn't have it
   map { $_->{required} //= 1 } values %$column_config;
-
 }
 
 
@@ -208,6 +235,22 @@ sub validate_columns {
     if (@unconfigured);
 }
 
+sub add_mandatory_columns {
+  my ($column_keys, $column_config) = @_;
+  # make a hash look-up
+  my %column_keys = map { ($_ => 1) } @$column_keys;
+  # work with a copy
+  my $result = [ @$column_keys ];
+
+  push @$result,
+    grep {
+      !$column_keys{$_} && # if we don't already have it
+      $column_config->{$_}{required} && # and it's required
+      defined $column_config->{$_}{default} # and there's a default provided
+    } keys %$column_config;
+
+  return $result;
+}
 
 sub flatten {
   my ($entity) = @_;
