@@ -5,15 +5,16 @@ study_description : Example study description
 
 # TO DO: publications and contacts
 
-study_species :
-  Anopheles darlingi : NCBITaxon_43151
-  Anopheles albimanus : NCBITaxon_7167
+study_species:
+  Anopheles darlingi: NCBITaxon_43151
+  Anopheles albimanus: NCBITaxon_7167
 
 study_sexes:
 
 study_developmental_stages:
 
 study_terms:
+  shannon: OBI_0002942 # Shannon trap
 
 
 

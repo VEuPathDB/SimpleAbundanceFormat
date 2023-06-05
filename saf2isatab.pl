@@ -15,6 +15,8 @@
 #
 #- do range checking on lat/long and date format checks
 #
+#- collect and report all errors rather than die for each one
+#
 #
 
 
@@ -155,11 +157,33 @@ sub add_material {
     foreach my $column (@$relevant_columns) {
       my $col_config = $column_config->{$column};
       my $col_term = $col_config->{column_term};
-      if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
-	$new_isaref->{characteristics}{"$column (TERM:$col_term)"}{value} = $row->{$column};
-      } elsif ($col_config->{value_type} eq 'term') {
-	my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
+      my $value = $row->{$column};
 
+      if (!defined $value || $value eq '') {
+	$value = $col_config->{default} // '';
+      }
+
+      # handle the characteristics/variables (not comments or protocols)
+      if ($col_term) {
+	my $characteristics = $new_isaref->{characteristics}{"$column (TERM:$col_term)"} //= {};
+
+	# if it's a plain text/number/date value then it's a simple case
+	if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
+	  $characteristics->{value} = $value;
+
+	  # ontology term values require a lookup from text to term:
+	} elsif ($col_config->{value_type} eq 'term') {
+	  # get the lookup hash (already validated - no need to check success)
+	  my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
+	  my $value_term_id = $lookup->{$value};
+	  if ($value_term_id) {
+	    $characteristics->{value} = $value;
+	    $characteristics->{term_source_ref} = 'TERM';
+	    $characteristics->{term_accession_number} = $value_term_id;
+	  } else {
+	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
+	  }
+	}
       }
     }
   }

@@ -1,3 +1,3 @@
-location_ID	collection_ID	sample_ID	collection_method	collection_start_date	collection_end_date	GPS_latitude	GPS_longitude	species	species_identification_method
-myplace01	mycollection01	mysample01	COLLECT	2002-02-02	2002-02-03	12.34	9.87	Anopheles darlingi	PCR
-myplace01	mycollection01	mysample02	COLLECT	2002-02-02	2002-02-03	12.34	9.87	Anopheles albimanus	PCR
+location_ID	collection_ID	sample_ID	collection_method	collection_start_date	collection_end_date	collection_device	GPS_latitude	GPS_longitude	species	species_identification_method
+myplace01	mycollection01	mysample01	COLLECT	2002-02-02	2002-02-03	shannon	12.34	9.87	Anopheles darlingi	PCR
+myplace01	mycollection01	mysample02	COLLECT	2002-02-02	2002-02-03	shannon	12.34	9.87	Anopheles albimanus	PCR
