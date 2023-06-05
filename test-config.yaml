@@ -15,9 +15,8 @@ study_developmental_stages:
 
 study_terms:
   shannon: OBI_0002942 # Shannon trap
-
-
-
+  hay: EUPATH_0043004
+  CO2: CHEBI_16526
 
 columns:
 # switch off some mandatory columns while developing

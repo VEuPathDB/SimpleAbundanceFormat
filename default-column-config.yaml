@@ -102,6 +102,7 @@ columns:
     value_type: term
     describes: collection
     required: false
+    multivalued: true
     column_term: EUPATH_0043001
 
   trap_number:

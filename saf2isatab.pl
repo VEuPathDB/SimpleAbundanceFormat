@@ -13,6 +13,8 @@
 #
 #- use ordered hashrefs to preserve order
 #
+#- split and rejoin non-term multivalued values to change delimiter if needed
+#
 #- do range checking on lat/long and date format checks
 #
 #- check for "overwrite" errors: e.g. a collection can occur on multiple rows - its data ought to be identical
@@ -43,6 +45,8 @@ use Data::Dumper;
 my $default_config_filename = $FindBin::Bin."/default-column-config.yaml";
 my $defaultConfig = LoadFile($default_config_filename);
 
+my $default_input_delimiter = ';';
+my $default_isatab_delimiter = ';';
 my $output_dir = 'temp-isatab';
 my $entities_filename = $FindBin::Bin."/entities.yaml";
 
@@ -177,6 +181,7 @@ sub add_material {
 	my $characteristics = $new_isaref->{characteristics}{"$column (TERM:$col_term)"} //= {};
 
 	# if it's a plain text/number/date value then it's a simple case
+	# multivalued values can be left as they are
 	if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
 	  $characteristics->{value} = $value;
 
@@ -184,14 +189,24 @@ sub add_material {
 	} elsif ($col_config->{value_type} eq 'term') {
 	  # get the lookup hash (already validated - no need to check success)
 	  my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
-	  my $value_term_id = $lookup->{$value};
-	  if ($value_term_id) {
-	    $characteristics->{value} = $value;
-	    $characteristics->{term_source_ref} = 'TERM';
-	    $characteristics->{term_accession_number} = $value_term_id;
-	  } else {
-	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
+
+	  # unfortunately, multivalued term columns make things complicated
+	  my @values = $col_config->{multivalued} ? split /\s*$col_config->{delimiter}\s*/, $value : ($value);
+	  my @term_source_refs;
+	  my @term_accession_numbers;
+
+	  foreach my $value (@values) {
+	    my $value_term_id = $lookup->{$value};
+	    if ($value_term_id) {
+	      push @term_source_refs, 'TERM';
+	      push @term_accession_numbers, $value_term_id;
+	    } else {
+	      die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
+	    }
 	  }
+	  $characteristics->{value} = join $default_isatab_delimiter, @values;
+	  $characteristics->{term_source_ref} = join $default_isatab_delimiter, @term_source_refs;
+	  $characteristics->{term_accession_number} = join $default_isatab_delimiter, @term_accession_numbers;
 	}
       } elsif ($col_config->{value_type} eq 'protocol_ref') {
 	# check that the protocol ref in $value is in the study_protocols
@@ -212,11 +227,27 @@ sub add_material {
     # check material or assay
     if ($child_entity->{type} eq 'material') {
       add_material($child_entity, $row, $new_isaref, $column_keys, $config_and_study);
+    } elsif ($child_entity->{type} eq 'assay') {
+      add_assay($child_entity, $row, $new_isaref, $column_keys, $config_and_study);
     }
   }
 
 }
 
+
+
+sub add_assay {
+  my ($entity, $row, $isaref, $column_keys, $config_and_study) = @_;
+
+  # There can be multiple assays for each type, e.g. 'insecticide resistance assay',
+  # when there are different protocols used for different columns with the `protocol` property.
+  # So we have to process all the columns and figure out which assay they correspond to.
+
+  my $study_assay_measurement_type = $entity->{name};
+
+  
+  
+}
 
 sub validate_config {
   my ($config, $flat_entities) = @_;
@@ -248,9 +279,13 @@ sub validate_config {
   die "FATAL ERROR: these columns have term_lookup values that are not defined in the config file:".join(', ', @dreadful)."\n"
     if (@dreadful);
 
-  # this has side effects!
-  # add `required: true` to any column that doesn't have it
+  ### the following have side effects!
+
+  # add the default `required: true` to any column that doesn't have it
   map { $_->{required} //= 1 } values %$column_config;
+
+  # add default delimiter for multivalued variables
+  map { $_->{delimiter} //= $default_input_delimiter } grep { $_->{multivalued} } values %$column_config;
 }
 
 
