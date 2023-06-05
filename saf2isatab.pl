@@ -49,7 +49,7 @@ use Data::Dumper;
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
 # are loaded as Perl booleans - although they don't really exist, so just 1 and undefined.
 #
-my $default_config_filename = $FindBin::Bin."/default-column-config.yaml";
+my $default_config_filename = $FindBin::Bin."/default-config.yaml";
 my $defaultConfig = LoadFile($default_config_filename);
 
 my $default_input_delimiter = ';';
