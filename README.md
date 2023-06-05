@@ -48,6 +48,7 @@ location_provenance | string, controlled | Optional??? | use a term from 'geoloc
 location_comment|string|Optional|free text comment about the collection site
 collection_method | protocol_ref | Mandatory | replaces deprecated `trap_type` - should be study_protocol_name 
 collection_device | term | Optional | replaces deprecated `trap_type`
+sample_method | protocol_ref | Mandatory | defaults to 'PORTIONING' defined in default_study_protocols - no need to override in most cases
 any_other_column_name|string or number|Optional|must be specified in config file, see below
 
 

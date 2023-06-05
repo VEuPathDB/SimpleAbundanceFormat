@@ -178,10 +178,23 @@ columns:
     describes: organism identification assay
     required: false
 
+  sample_method:
+    value_type: protocol_ref
+    describes: sample
+    default: PORTIONING
+
   # to do? add pathogen_comment, insecticide_resistance_comment etc?
 
   
-
+#
+# default protocol for `sample_method`
+# we could add more default protocols if we like?
+#
+default_study_protocols:
+  - study_protocol_name : PORTIONING 
+    study_protocol_type : material portioning
+    study_protocol_type_term_source_ref : EUPATH
+    study_protocol_type_term_accession_number : OBI_0600018
 
 
 location_qualifiers:

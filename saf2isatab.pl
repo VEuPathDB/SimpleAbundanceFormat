@@ -15,10 +15,15 @@
 #
 #- do range checking on lat/long and date format checks
 #
+#- check for "overwrite" errors: e.g. a collection can occur on multiple rows - its data ought to be identical
+#  currently we only load the first row and don't check subsequent rows.
+#
 #- collect and report all errors rather than die for each one
 #
+#- check study_protocols for duplicates after appending defaults
 #
-
+#- specify format for comments (e.g. semicolon delimited, colon prefixed?) and load them separately according to prefix
+#
 
 use strict;
 use warnings;
@@ -63,6 +68,10 @@ my $column_config = $config->{columns};
 # a subset of the config is also the basis of the ISA-Tab study datastructure
 # the ISA-Tab writer ignores the extra config information
 my $study = $config;
+
+# the YAML merge can't handle arrays, so we append the default_study_protocols onto the main protocols
+# (with no checks for duplicates...)
+push @{$study->{study_protocols}}, @{$config->{default_study_protocols}};
 
 # load the entity graph
 my $entities = LoadFile($entities_filename);
@@ -192,6 +201,8 @@ sub add_material {
 	} else {
 	  die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
 	}
+      } elsif ($col_config->{value_type} eq 'comment') {
+	$new_isaref->{comments}{$entity->{name}} = $value;
       }
     }
   }
