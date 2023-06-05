@@ -126,7 +126,7 @@ my $study_assays = $study->{study_assays} = [];
 my $study_protocols = $study->{study_protocols} //= [];
 
 foreach my $sample_ID (@$sample_IDs) {
-  warn "trying >$sample_ID<\n";
+  warn "processing sample: $sample_ID\n";
   my $row = $hashified->record($sample_ID);
 
   # add material entities (descending the entity graph into assay entities also)
@@ -230,6 +230,7 @@ sub add_column_data {
 	my @term_accession_numbers;
 
 	foreach my $value (@values) {
+	  next unless (defined $value && $value ne ''); # don't do lookups on nothing
 	  my $value_term_id = $lookup->{$value};
 	  if ($value_term_id) {
 	    push @term_source_refs, 'TERM';
@@ -294,7 +295,7 @@ sub add_assay {
     my $col_config = $column_config->{$column};
     my $col_term = $col_config->{column_term};
     my $value = $row->{$column};
-    my $row_protocol_ref = $protocol_column ? $row->{$protocol_column} : undef;
+    my $row_protocol_ref = $protocol_column ? $row->{$protocol_column} || $column_config->{$protocol_column}{default} : undef;
     my $column_protocol_ref = $col_config->{protocol};
 
     die "FATAL ERROR: no row- or column-wise protocol for sample '$row->{sample_ID}' and '$study_assay_measurement_type'\n"
