@@ -165,61 +165,7 @@ sub add_material {
   if (!defined $new_isaref) {
     $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= {};
 
-    my $relevant_columns = [ grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
-
-    foreach my $column (@$relevant_columns) {
-      my $col_config = $column_config->{$column};
-      my $col_term = $col_config->{column_term};
-      my $value = $row->{$column};
-
-      if (!defined $value || $value eq '') {
-	$value = $col_config->{default} // '';
-      }
-
-      # handle the characteristics/variables (not comments or protocols)
-      if ($col_term) {
-	my $characteristics = $new_isaref->{characteristics}{"$column (TERM:$col_term)"} //= {};
-
-	# if it's a plain text/number/date value then it's a simple case
-	# multivalued values can be left as they are
-	if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
-	  $characteristics->{value} = $value;
-
-	  # ontology term values require a lookup from text to term:
-	} elsif ($col_config->{value_type} eq 'term') {
-	  # get the lookup hash (already validated - no need to check success)
-	  my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
-
-	  # unfortunately, multivalued term columns make things complicated
-	  my @values = $col_config->{multivalued} ? split /\s*$col_config->{delimiter}\s*/, $value : ($value);
-	  my @term_source_refs;
-	  my @term_accession_numbers;
-
-	  foreach my $value (@values) {
-	    my $value_term_id = $lookup->{$value};
-	    if ($value_term_id) {
-	      push @term_source_refs, 'TERM';
-	      push @term_accession_numbers, $value_term_id;
-	    } else {
-	      die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
-	    }
-	  }
-	  $characteristics->{value} = join $default_isatab_delimiter, @values;
-	  $characteristics->{term_source_ref} = join $default_isatab_delimiter, @term_source_refs;
-	  $characteristics->{term_accession_number} = join $default_isatab_delimiter, @term_accession_numbers;
-	}
-      } elsif ($col_config->{value_type} eq 'protocol_ref') {
-	# check that the protocol ref in $value is in the study_protocols
-	my @ok = grep { $_->{study_protocol_name} eq $value } @{$config_and_study->{study_protocols}};
-	if (@ok) {
-	  $new_isaref->{protocols}{$value} = {};
-	} else {
-	  die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
-	}
-      } elsif ($col_config->{value_type} eq 'comment') {
-	$new_isaref->{comments}{$entity->{name}} = $value;
-      }
-    }
+    add_column_data($new_isaref, $column_keys, $row, $entity, $config_and_study);
   }
 
   # recurse down entity tree
@@ -234,6 +180,71 @@ sub add_material {
 
 }
 
+
+#
+# add data in $column_keys from $row to hang off $isaref (in the nascent ISA-Tab data structure)
+# e.g. characteristics, comments, protocol ref
+#
+sub add_column_data {
+  my ($isaref, $column_keys, $row, $entity, $config_and_study) = @_;
+  my $column_config = $config_and_study->{columns};
+
+  my $relevant_columns = [ grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
+
+  foreach my $column (@$relevant_columns) {
+    my $col_config = $column_config->{$column};
+    my $col_term = $col_config->{column_term};
+    my $value = $row->{$column};
+
+    if (!defined $value || $value eq '') {
+      $value = $col_config->{default} // '';
+    }
+
+    # handle the characteristics/variables (not comments or protocols)
+    if ($col_term) {
+      my $characteristics = $isaref->{characteristics}{"$column (TERM:$col_term)"} //= {};
+
+      # if it's a plain text/number/date value then it's a simple case
+      # multivalued values can be left as they are
+      if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
+	$characteristics->{value} = $value;
+
+	# ontology term values require a lookup from text to term:
+      } elsif ($col_config->{value_type} eq 'term') {
+	# get the lookup hash (already validated - no need to check success)
+	my $lookup = $config->{$col_config->{term_lookup} // 'study_terms'};
+
+	# unfortunately, multivalued term columns make things complicated
+	my @values = $col_config->{multivalued} ? split /\s*$col_config->{delimiter}\s*/, $value : ($value);
+	my @term_source_refs;
+	my @term_accession_numbers;
+
+	foreach my $value (@values) {
+	  my $value_term_id = $lookup->{$value};
+	  if ($value_term_id) {
+	    push @term_source_refs, 'TERM';
+	    push @term_accession_numbers, $value_term_id;
+	  } else {
+	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
+	  }
+	}
+	$characteristics->{value} = join $default_isatab_delimiter, @values;
+	$characteristics->{term_source_ref} = join $default_isatab_delimiter, @term_source_refs;
+	$characteristics->{term_accession_number} = join $default_isatab_delimiter, @term_accession_numbers;
+      }
+    } elsif ($col_config->{value_type} eq 'protocol_ref') {
+      # check that the protocol ref in $value is in the study_protocols
+      my @ok = grep { $_->{study_protocol_name} eq $value } @{$config_and_study->{study_protocols}};
+      if (@ok) {
+	$isaref->{protocols}{$value} = {};
+      } else {
+	die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
+      }
+    } elsif ($col_config->{value_type} eq 'comment') {
+      $isaref->{comments}{$entity->{name}} = $value;
+    }
+  }
+}
 
 
 sub add_assay {
@@ -281,9 +292,13 @@ sub add_assay {
 
     # now we need to figure out which study_assay to load the data into
     my $assay_filename = make_assay_filename($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref);
-
     my $study_assay = find_or_create_study_assay($config_and_study, $study_assay_measurement_type, $assay_filename);
-    
+
+    # now add the link from sample ID to the actual assay
+    my $assay_id = $row->{sample_ID}.'.'.($row_protocol_ref || $column_protocol_ref);
+    my $assay = $study_assay->{samples}{$row->{sample_ID}}{assays}{$assay_id} //= {};
+
+    add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
   }
 
   # we can only handle comments for row-wise protocols (e.g. species_comment)
