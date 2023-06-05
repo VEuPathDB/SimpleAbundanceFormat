@@ -479,8 +479,6 @@ sub make_auto_entity_id {
   if (!$seen_signatures{$signature}) {
     my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
     $seen_signatures{$signature} = $new_id;
-
-    warn "woo, made >>$new_id<<\n";
   }
   return $seen_signatures{$signature};
 }

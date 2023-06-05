@@ -3,7 +3,7 @@ columns:
   location_ID:
     value_type: id
     describes: location
-    default: __AUTO__
+    default: __AUTO__  # we'll generate one but for consistency it's better if providers provide
 
   collection_ID:
     value_type: id
