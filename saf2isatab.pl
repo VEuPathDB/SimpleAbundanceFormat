@@ -184,6 +184,14 @@ sub add_material {
 	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
 	  }
 	}
+      } elsif ($col_config->{value_type} eq 'protocol_ref') {
+	# check that the protocol ref in $value is in the study_protocols
+	my @ok = grep { $_->{study_protocol_name} eq $value } @{$config_and_study->{study_protocols}};
+	if (@ok) {
+	  $new_isaref->{protocols}{$value} = {};
+	} else {
+	  die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
+	}
       }
     }
   }
