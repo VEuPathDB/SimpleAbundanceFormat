@@ -10,10 +10,13 @@ study_species:
   Anopheles albimanus: NCBITaxon_7167
 
 study_sexes:
+  male : PATO_0000384
+  female : PATO_0000383
 
 study_developmental_stages:
 
 study_terms:
+  individual: OBI_0002648
   shannon: OBI_0002942 # Shannon trap
   hay: EUPATH_0043004
   CO2: CHEBI_16526
@@ -23,11 +26,15 @@ columns:
   developmental_stage:
     required: false
 
+# add defaults for others
   sex:
-    required: false
+    default: female
+
+  sample_type:
+    default: individual
 
   sample_count:
-    required: false
+    default: 1
 
   pathogen_status_Pf:
     value_type: string

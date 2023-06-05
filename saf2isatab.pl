@@ -332,7 +332,7 @@ sub validate_config {
     !$column_config->{$_}{deprecated} &&
     !$column_config->{$_}{column_term}
   } keys %$column_config;
-  die "FATAL ERROR: these columns don't have a column_term (e.g. a variable IRI)".join(', ', @terrible)."\n"
+  die "FATAL ERROR: these columns don't have a column_term (e.g. a variable IRI): ".join(', ', @terrible)."\n"
     if (@terrible);
 
   # check that any term_lookup values exist in the $config hash as first level keys
