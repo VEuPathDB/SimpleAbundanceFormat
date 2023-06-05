@@ -114,7 +114,7 @@ my $column_keys = $hashified->fields;
 
 # make sure no required columns are missing from column_keys
 # and warn about any unconfigured columns
-validate_columns($column_keys, $column_config);
+$column_keys = validate_columns($column_keys, $column_config);
 
 # append mandatory columns that have default values
 $column_keys = add_mandatory_columns($column_keys, $column_config);
@@ -161,6 +161,9 @@ sub add_material {
   my $entity_id = $row->{$id_column_name};
   # warn "id column is $id_column_name and got $entity_id\n";
 
+  if (!defined $entity_id && $column_config->{$id_column_name}{default} eq '__AUTO__') {
+    $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
+  }
 
   # make a hashref to put the new material nodes in, e.g.
   # $study->{sources}{some_source_id} = ...
@@ -385,6 +388,9 @@ sub validate_columns {
 
   warn "WARNING: the following data file columns are not configured and will be ignored: ".join(', ', @unconfigured)."\n"
     if (@unconfigured);
+
+  # return only the configured columns
+  return [ grep { exists $column_config->{$_} } @$column_keys ];
 }
 
 sub add_mandatory_columns {
@@ -452,4 +458,29 @@ sub find_or_create_study_assay {
 
   push @{$config_and_study->{study_assays}}, $study_assay;
   return $study_assay;
+}
+
+
+#
+# generate an entity_id based on the unique signature of all its column values
+#
+
+# we use the size of this hash to generate the entity ID serial number
+my %seen_signatures;
+
+sub make_auto_entity_id {
+  my ($entity, $row, $column_keys, $config_and_study) = @_;
+
+  my $column_config = $config_and_study->{columns};
+  # the sort is important for the signature
+  my $relevant_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
+  my $signature = join '::', map { $row->{$_} // '' } @$relevant_columns;
+
+  if (!$seen_signatures{$signature}) {
+    my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
+    $seen_signatures{$signature} = $new_id;
+
+    warn "woo, made >>$new_id<<\n";
+  }
+  return $seen_signatures{$signature};
 }

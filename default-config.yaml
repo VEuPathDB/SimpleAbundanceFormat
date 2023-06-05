@@ -3,6 +3,7 @@ columns:
   location_ID:
     value_type: id
     describes: location
+    default: __AUTO__
 
   collection_ID:
     value_type: id
