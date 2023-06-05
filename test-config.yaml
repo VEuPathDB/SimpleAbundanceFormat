@@ -29,6 +29,21 @@ columns:
   sample_count:
     required: false
 
+  pathogen_status_Pf:
+    value_type: string
+    describes: pathogen detection assay
+    protocol: PATHOGEN
+    column_term: POPBIO_0999991
+    description: present/absent status of Plasmodium falciparum
+
+  pathogen_status_Pv:
+    value_type: string
+    describes: pathogen detection assay
+    protocol: PATHOGEN
+    column_term: POPBIO_0999992
+    description: present/absent status of Plasmodium vivax
+
+
 study_protocols:
   - study_protocol_name : COLLECT
     study_protocol_type : citizen science collection
@@ -41,3 +56,10 @@ study_protocols:
     study_protocol_type_term_source_ref : EUPATH
     study_protocol_type_term_accession_number : OBI_0002740
     study_protocol_description : Do PCR with diagnostic primers to find out the species
+
+  - study_protocol_name : PATHOGEN
+    study_protocol_type : pathogen detection by loop-mediated isothermal amplification assay
+    study_protocol_type_term_source_ref : EUPATH
+    study_protocol_type_term_accession_number : OBI_0002731
+    study_protocol_description : Do PCR with diagnostic primers to find out if it's infected with a pathogen
+  

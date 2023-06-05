@@ -26,6 +26,13 @@
 #
 #- specify format for comments (e.g. semicolon delimited, colon prefixed?) and load them separately according to prefix
 #
+#
+# LIMITATIONS:
+#
+#- multiple protocols per assay/material processing aren't handled, but hopefully we won't need them
+#
+
+
 
 use strict;
 use warnings;
@@ -297,25 +304,11 @@ sub add_assay {
     # now add the link from sample ID to the actual assay
     my $assay_id = $row->{sample_ID}.'.'.($row_protocol_ref || $column_protocol_ref);
     my $assay = $study_assay->{samples}{$row->{sample_ID}}{assays}{$assay_id} //= {};
-
+    # add the column-wise protocol ref explicitly
+    $assay->{protocols}{$column_protocol_ref} = {}
+      if ($column_protocol_ref);
+    # otherwise row-wise protocol ref will be added from the input $row by add_column_data
     add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
-  }
-
-  # we can only handle comments for row-wise protocols (e.g. species_comment)
-  # for column-wise protocols we created separate assay files and we would not
-  # know which file to put the comment in (unless we add a protocol field to those column definitions)
-  if ($protocol_column) {
-    my $comment_columns = [ grep {
-      $column_config->{$_}{describes} eq $entity->{name} &&
-	$column_config->{$_}{value_type} eq 'comment'
-      } @$column_keys ];
-
-    die "FATAL ERROR: more than one comment column found for $study_assay_measurement_type."
-      if (@$comment_columns > 1);
-
-    foreach my $column (@$comment_columns) {
-      warn "TO DO";
-    }
   }
 }
 
@@ -351,14 +344,15 @@ sub validate_config {
 
 
   # check that any `protocol` values for assay variables are in the study_protocols
+  # (nested grep is not too pretty)
   my @awful = grep {
-    $column_config->{$_}{protocol} &&
-    grep { $_->{study_protocol_name} eq $column_config->{$_}{protocol} } @{$study->{study_protocols}} == 0
+    my $column = $_;
+    $column_config->{$column}{protocol} &&
+    !grep { $_->{study_protocol_name} eq $column_config->{$column}{protocol} } @{$config->{study_protocols}}
   } keys %$column_config;
   die "FATAL ERROR: these columns contain `protocol` values that are not in study_protocols: ".join(', ', @awful)."\n"
     if (@awful);
 
-  
   ### the following have side effects!
 
   # add the default `required: true` to any column that doesn't have it
