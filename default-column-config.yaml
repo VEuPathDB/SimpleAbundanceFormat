@@ -201,3 +201,15 @@ default_study_protocols:
 location_qualifiers:
   abc : DEF_0123456
 
+
+#
+# used internally - unlikely to need overriding
+#
+study_assay_measurement_type_term_lookup:
+  organism identification assay: OBI_0001624
+  blood meal assay: OBI_0002732
+  pathogen detection assay: OBI_0002728
+  insecticide resistance assay: OBI_0002695
+  genotyping assay: OBI_0000435
+
+

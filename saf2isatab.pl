@@ -245,8 +245,63 @@ sub add_assay {
 
   my $study_assay_measurement_type = $entity->{name};
 
-  
-  
+  # there are two ways to find out what protocol is needed
+  # 1. A column such as `species_identification_method` provides the protocol on a row by row basis.
+  #    For this we search the column config and make $protocol_column - if there is just one (e.g. `species_identification_method`)
+  #    then we'll use that.
+  # 2. The assay type (e.g. `insecticide resistance assay`) doesn't have a special *_method column but
+  #    individual columns can have a `protocol` attribute, and we use that on a column-wise basis.
+  #
+  my $protocol_columns = [ grep {
+    $column_config->{$_}{describes} eq $entity->{name} &&
+      $column_config->{$_}{value_type} eq 'protocol_ref'
+    } @$column_keys ];
+
+  my $protocol_column;
+  if (@$protocol_columns == 1) {
+    $protocol_column = $protocol_columns->[0];
+  } elsif (@$protocol_columns > 1) {
+    die "FATAL ERROR: didn't expect more than one protocol_ref column for $study_assay_measurement_type: ".join(', ', @$protocol_columns)."\n";
+  }
+
+  my $data_columns = [ grep {
+    $column_config->{$_}{describes} eq $entity->{name} &&
+      $column_config->{$_}{column_term}
+  } @$column_keys ];
+
+  foreach my $column (@$data_columns) {
+    my $col_config = $column_config->{$column};
+    my $col_term = $col_config->{column_term};
+    my $value = $row->{$column};
+    my $row_protocol_ref = $protocol_column ? $row->{$protocol_column} : undef;
+    my $column_protocol_ref = $col_config->{protocol};
+
+    die "FATAL ERROR: no row- or column-wise protocol for sample '$row->{sample_ID}' and '$study_assay_measurement_type'\n"
+      unless ($row_protocol_ref || $column_protocol_ref);
+
+    # now we need to figure out which study_assay to load the data into
+    my $assay_filename = make_assay_filename($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref);
+
+    my $study_assay = find_or_create_study_assay($config_and_study, $study_assay_measurement_type, $assay_filename);
+    
+  }
+
+  # we can only handle comments for row-wise protocols (e.g. species_comment)
+  # for column-wise protocols we created separate assay files and we would not
+  # know which file to put the comment in (unless we add a protocol field to those column definitions)
+  if ($protocol_column) {
+    my $comment_columns = [ grep {
+      $column_config->{$_}{describes} eq $entity->{name} &&
+	$column_config->{$_}{value_type} eq 'comment'
+      } @$column_keys ];
+
+    die "FATAL ERROR: more than one comment column found for $study_assay_measurement_type."
+      if (@$comment_columns > 1);
+
+    foreach my $column (@$comment_columns) {
+      warn "TO DO";
+    }
+  }
 }
 
 sub validate_config {
@@ -279,6 +334,16 @@ sub validate_config {
   die "FATAL ERROR: these columns have term_lookup values that are not defined in the config file:".join(', ', @dreadful)."\n"
     if (@dreadful);
 
+
+  # check that any `protocol` values for assay variables are in the study_protocols
+  my @awful = grep {
+    $column_config->{$_}{protocol} &&
+    grep { $_->{study_protocol_name} eq $column_config->{$_}{protocol} } @{$study->{study_protocols}} == 0
+  } keys %$column_config;
+  die "FATAL ERROR: these columns contain `protocol` values that are not in study_protocols: ".join(', ', @awful)."\n"
+    if (@awful);
+
+  
   ### the following have side effects!
 
   # add the default `required: true` to any column that doesn't have it
@@ -333,4 +398,49 @@ sub add_mandatory_columns {
 sub flatten {
   my ($entity) = @_;
   return [ $entity, map { @{ flatten($_) } } @{$entity->{children}} ];
+}
+
+
+sub make_assay_filename {
+  my ($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref) = @_;
+
+  my $result;
+  if ($row_protocol_ref) {
+    $result = "a_$study_assay_measurement_type.txt";
+  } else {
+    $result = "a_$study_assay_measurement_type $column_protocol_ref.txt";
+  }
+  $result =~ s/\s/_/g;
+  return $result;
+}
+
+
+#
+# look up in study_assays based on the assay filename
+#
+sub find_or_create_study_assay {
+  my ($config_and_study, $study_assay_measurement_type, $assay_filename) = @_;
+
+  my @existing = grep {
+    $_->{study_assay_file_name} eq $assay_filename
+  } @{$config_and_study->{study_assays}};
+
+  if (@existing == 1) {
+    return $existing[0];
+  } elsif (@existing > 1) {
+    die "FATAL ERROR: more than one study_assay with same filename\n";
+  }
+
+  # now create a new one if necessary
+  my $study_assay =
+    {
+     study_assay_file_name => $assay_filename,
+     study_assay_measurement_type => $study_assay_measurement_type,
+     study_assay_measurement_type_term_source_ref => 'TERM',
+     study_assay_measurement_type_term_accession_number => $config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type},
+     samples => {},
+    };
+
+  push @{$config_and_study->{study_assays}}, $study_assay;
+  return $study_assay;
 }
