@@ -1,3 +1,3 @@
-location_ID	collection_ID	sample_ID	collection_method	collection_start_date	collection_end_date	collection_device	attractant	collection_comment	GPS_latitude	GPS_longitude	species	species_identification_method	sample_comment	pathogen_status_Pf	pathogen_status_Pv
-myplace01	mycollection01	mysample01	COLLECT	2002-02-02	2002-02-03	shannon	hay;CO2	cool collection	12.34	9.87	Anopheles darlingi	PCR	amazing sample	present	absent
-myplace01	mycollection01	mysample02	COLLECT	2002-02-02	2002-02-03	shannon	hay;CO2	cool collection	12.34	9.87	Anopheles albimanus	PCR	super sample	absent	present
+location_ID	collection_ID	sample_ID	junk	collection_method	collection_start_date	collection_end_date	collection_device	attractant	collection_comment	GPS_latitude	GPS_longitude	species	species_identification_method	sample_comment	pathogen_status_Pf	pathogen_status_Pv
+myplace01	mycollection01	mysample01	rubbish	COLLECT	2002-02-02	2002-02-03	shannon	hay;CO2	cool collection	12.34	9.87	Anopheles darlingi	PCR	amazing sample	present	absent
+myplace01	mycollection01	mysample02	trash	COLLECT	2002-02-02	2002-02-03	shannon	hay;CO2	cool collection	12.34	9.87	Anopheles albimanus	PCR	super sample	absent	present

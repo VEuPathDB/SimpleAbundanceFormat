@@ -151,7 +151,8 @@ sub add_material {
   # otherwise we'll need to generate default IDs (which we can add later if providing, e.g. location_ID is a hassle)
 
   my ($id_column_name) =
-    grep { $column_config->{$_}{describes} eq $entity->{name} &&
+    grep { !$column_config->{$_}{ignore} &&
+	   $column_config->{$_}{describes} eq $entity->{name} &&
 	   $column_config->{$_}{value_type} eq 'id' }
     keys %$column_config;
 
@@ -321,17 +322,18 @@ sub validate_config {
 
   my $column_config = $config->{columns};
   # check that every column definition has `describes` and `value_type`
-  my @bad = grep { !$column_config->{$_}{describes} || !$column_config->{$_}{value_type} } keys %$column_config;
+  my @bad = grep { (!$column_config->{$_}{describes} || !$column_config->{$_}{value_type}) && !$column_config->{$_}{ignore} } keys %$column_config;
   die "FATAL ERROR: column configuration is missing required attributes 'describes' and/or 'value_type' for columns: ".join(', ', @bad)."\n" if (@bad);
 
   # now check that all the columns `describe` an existing entity
   my %entity_names = map { ($_->{name} => 1) } @$flat_entities;
-  my @worse = grep { !$entity_names{$column_config->{$_}{describes}} } keys %$column_config;
+  my @worse = grep { !$column_config->{$_}{ignore} && !$entity_names{$column_config->{$_}{describes}} } keys %$column_config;
   die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
     if (@worse);
 
   # check that every non-deprecated term|number|string|date|latitude|longitude column has a column_term
   my @terrible = grep {
+    !$column_config->{$_}{ignore} &&
     $column_config->{$_}{value_type} =~ /^(term|number|string|date|latitude|longitude)$/ &&
     !$column_config->{$_}{deprecated} &&
     !$column_config->{$_}{column_term}
@@ -376,22 +378,24 @@ sub validate_columns {
   # are all the required columns in the input file's header?
   #
   my @missing = grep {
-      ($column_config->{$_}{required} && !defined $column_config->{$_}{default}) && !$column_keys{$_}
+    !$column_config->{$_}{ignore} &&
+    $column_config->{$_}{required} &&
+    !defined $column_config->{$_}{default} &&
+    !$column_keys{$_}
   } keys %$column_config;
 
   die "FATAL ERROR: the following required columns are missing from the input file: ".join(', ', @missing)."\n"
     if (@missing);
 
-
   my @unconfigured = grep {
     !exists $column_config->{$_}
   } @$column_keys;
 
-  warn "WARNING: the following data file columns are not configured and will be ignored: ".join(', ', @unconfigured)."\n"
+  warn "WARNING: the following data file columns are not configured (or explicitly ignored) and will be skipped: ".join(', ', @unconfigured)."\n"
     if (@unconfigured);
 
-  # return only the configured columns
-  return [ grep { exists $column_config->{$_} } @$column_keys ];
+  # return only the configured and non-ignored columns
+  return [ grep { exists $column_config->{$_} && !$column_config->{$_}{ignore} } @$column_keys ];
 }
 
 sub add_mandatory_columns {

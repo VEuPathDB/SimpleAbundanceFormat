@@ -50,6 +50,8 @@ columns:
     column_term: POPBIO_0999992
     description: present/absent status of Plasmodium vivax
 
+  junk:
+    ignore: true
 
 study_protocols:
   - study_protocol_name : COLLECT
