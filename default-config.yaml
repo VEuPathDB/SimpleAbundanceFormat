@@ -213,7 +213,10 @@ default_study_protocols:
 
 
 location_qualifiers:
-  abc : DEF_0123456
+  # location was looked up at following levels (rather than taken from a device)
+  country_level : EUPATH_0043241
+  adm1_level : EUPATH_0043242
+  adm2_level : EUPATH_0043243
 
 
 #
