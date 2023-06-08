@@ -191,6 +191,11 @@ columns:
     default: pool
     column_term: EUPATH_0000611
 
+  phenotypes:
+    value_type: string
+    describes: pathogen detection assay
+    required: false
+    deprecated: not implemented yet - use wide columns instead?
 
 
   # to do? add pathogen_comment, insecticide_resistance_comment etc?
