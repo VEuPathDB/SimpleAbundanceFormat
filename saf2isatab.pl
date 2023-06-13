@@ -168,13 +168,12 @@ sub add_material {
 
   # make a hashref to put the new material nodes in, e.g.
   # $study->{sources}{some_source_id} = ...
-
-  $isaref->{$entity->{isa_key}} //= {};
+  $isaref->{$entity->{isa_key}} //= {}; # could/should be ordered hashref
   my $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id};
 
   # only make a node once (i.e. don't reprocess a location multiple times for each collection and sample)
   if (!defined $new_isaref) {
-    $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= {};
+    $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= { material_type => $entity->{isa_material_type} };
 
     add_column_data($new_isaref, $column_keys, $row, $entity, $config_and_study);
   }
