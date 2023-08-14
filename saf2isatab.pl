@@ -212,7 +212,7 @@ sub add_column_data {
 
     # handle the characteristics/variables (not comments or protocols)
     if ($col_term) {
-      my $characteristics = $isaref->{characteristics}{"$column (TERM:$col_term)"} //= {};
+      my $characteristics = $isaref->{characteristics}{"$column ($col_term)"} //= {};
 
       # if it's a plain text/number/date value then it's a simple case
       # multivalued values can be left as they are
@@ -233,7 +233,7 @@ sub add_column_data {
 	  next unless (defined $value && $value ne ''); # don't do lookups on nothing
 	  my $value_term_id = $lookup->{$value};
 	  if ($value_term_id) {
-	    push @term_source_refs, 'TERM';
+	    push @term_source_refs, source_ref($value_term_id);
 	    push @term_accession_numbers, $value_term_id;
 	  } else {
 	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
@@ -456,7 +456,7 @@ sub find_or_create_study_assay {
     {
      study_assay_file_name => $assay_filename,
      study_assay_measurement_type => $study_assay_measurement_type,
-     study_assay_measurement_type_term_source_ref => 'TERM',
+     study_assay_measurement_type_term_source_ref => source_ref($config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type}),
      study_assay_measurement_type_term_accession_number => $config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type},
      samples => {},
     };
@@ -486,4 +486,12 @@ sub make_auto_entity_id {
     $seen_signatures{$signature} = $new_id;
   }
   return $seen_signatures{$signature};
+}
+
+
+# just return the prefix before the underscore or 'TERM' as fallback
+sub source_ref {
+  my ($term_id) = @_;
+  my ($prefix, $acc) = split /_/, $term_id;
+  return $prefix || 'TERM';
 }
