@@ -407,6 +407,7 @@ sub add_mandatory_columns {
   push @$result,
     grep {
       !$column_keys{$_} && # if we don't already have it
+      !$column_config->{$_}{ignore} && # and if we're not ignoring it
       $column_config->{$_}{required} && # and it's required
       defined $column_config->{$_}{default} # and there's a default provided
     } keys %$column_config;
