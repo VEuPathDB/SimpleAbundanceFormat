@@ -22,6 +22,8 @@ columns:
     value_type: date
     describes: collection
     column_term: EUPATH_0043257
+    required: false
+    comment: use the `collection_duration` column to specify duration in days if not 1
 
   trap_ID:
     value_type: string # not `id` because trap is not one of our core entity types 
