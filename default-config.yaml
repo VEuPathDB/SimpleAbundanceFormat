@@ -13,6 +13,14 @@ columns:
     value_type: id
     describes: sample
 
+  collection_raw_dates:
+    required: false
+    value_type: string # this won't be validated, even when we actually do date validation (issue #6)
+    describes: collection
+    multi-valued: false # values are likely to contain semicolons, but make sure we don't treat them as multi-valued 
+    column_term: OBI_0001619
+    description: multiple semicolon-delimited dates (DATE = YYYY, YYYY-MM or YYYY-MM-DD) and/or date ranges (DATE/DATE)
+    
   collection_start_date:
     value_type: date
     describes: collection
