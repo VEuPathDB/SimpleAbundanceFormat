@@ -342,7 +342,9 @@ sub validate_config {
 
   # check that any term_lookup values exist in the $config hash as first level keys
   my @dreadful = grep {
-    $column_config->{$_}{term_lookup} && !exists $config->{$column_config->{$_}{term_lookup}}
+    !$column_config->{$_}{ignore} &&
+    $column_config->{$_}{term_lookup} &&
+    !exists $config->{$column_config->{$_}{term_lookup}}
   } keys %$column_config;
   die "FATAL ERROR: these columns have term_lookup values that are not defined in the config file:".join(', ', @dreadful)."\n"
     if (@dreadful);
