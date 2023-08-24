@@ -252,7 +252,7 @@ sub add_column_data {
 	die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
       }
     } elsif ($col_config->{value_type} eq 'comment') {
-      $isaref->{comments}{$entity->{name}} = $value;
+      $isaref->{comments}{$column} = $value;
     }
   }
 }
