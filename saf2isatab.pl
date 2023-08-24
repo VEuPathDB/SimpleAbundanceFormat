@@ -125,6 +125,7 @@ $study->{study_file_name} = 's_samples.txt';
 my $study_assays = $study->{study_assays} = [];
 my $study_protocols = $study->{study_protocols} //= [];
 
+my @DEFERRED_ERRORS;
 foreach my $sample_ID (@$sample_IDs) {
   warn "processing sample: $sample_ID\n";
   my $row = $hashified->record($sample_ID);
@@ -133,7 +134,9 @@ foreach my $sample_ID (@$sample_IDs) {
   add_material($root_entity, $row, $study, $column_keys, $config);
 }
 
-
+if (@DEFERRED_ERRORS) {
+  die "Cannot proceed with writing ISA-Tab due to the following data errors:\n\n @DEFERRED_ERRORS\n";
+}
 #
 # write the ISA-Tab!
 #
@@ -218,6 +221,12 @@ sub add_column_data {
       # multivalued values can be left as they are
       if ($col_config->{value_type} =~ /^(number|string|date|latitude|longitude)$/) {
 	$characteristics->{value} = $value;
+	# check if it was allowed
+	if ($col_config->{allowed_values}) {
+	  push @DEFERRED_ERRORS, "value '$value' not in 'allowed_values' for column '$column'\n"
+	    unless (grep { $value eq $_ } @{$col_config->{allowed_values}});
+	  # not very efficient with the grep but 'allowed_values' will typically be small
+	}
 
 	# ontology term values require a lookup from text to term:
       } elsif ($col_config->{value_type} eq 'term') {
@@ -236,7 +245,7 @@ sub add_column_data {
 	    push @term_source_refs, source_ref($value_term_id);
 	    push @term_accession_numbers, $value_term_id;
 	  } else {
-	    die sprintf "FATAL ERROR: value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
+	    push @DEFERRED_ERRORS, sprintf "value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
 	  }
 	}
 	$characteristics->{value} = join $default_isatab_delimiter, @values;
@@ -249,7 +258,7 @@ sub add_column_data {
       if (@ok) {
 	$isaref->{protocols}{$value} = {};
       } else {
-	die "FATAL ERROR: protocol ref '$value' not found in study_protocols\n";
+	push @DEFERRED_ERRORS, "protocol ref '$value' not found in study_protocols\n";
       }
     } elsif ($col_config->{value_type} eq 'comment') {
       $isaref->{comments}{$column} = $value;
@@ -330,15 +339,52 @@ sub validate_config {
   die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
     if (@worse);
 
+  # check that value_type is supported
+  my $value_type_validation = qr/^(term|number|string|date|latitude|longitude|id|comment|protocol_ref)$/;
+  my @unsupported = grep { !$column_config->{$_}{ignore} &&
+			     $column_config->{$_}{value_type} !~ $value_type_validation } keys %$column_config;
+  die "FATAL ERROR: these columns have an unsupported 'value_type': ".join(', ', @unsupported)."\n" if (@unsupported);
+
   # check that every non-deprecated term|number|string|date|latitude|longitude column has a column_term
+  my $value_types_requiring_column_term = qr/^(term|number|string|date|latitude|longitude)$/;
   my @terrible = grep {
     !$column_config->{$_}{ignore} &&
-    $column_config->{$_}{value_type} =~ /^(term|number|string|date|latitude|longitude)$/ &&
+    $column_config->{$_}{value_type} =~ $value_types_requiring_column_term &&
     !$column_config->{$_}{deprecated} &&
     !$column_config->{$_}{column_term}
   } keys %$column_config;
   die "FATAL ERROR: these columns don't have a column_term (e.g. a variable IRI): ".join(', ', @terrible)."\n"
     if (@terrible);
+
+  # check that term columns do not have allowed_values
+  my @disallowed = grep {
+    !$column_config->{$_}{ignore} &&
+    $column_config->{$_}{value_type} eq 'term' &&
+    defined $column_config->{$_}{allowed_values}
+  } keys %$column_config;
+  die "FATAL ERROR: these 'value_type: term' columns cannot have 'allowed_values': ".join(', ', @disallowed)."\n"
+    if (@disallowed);
+
+  # check that allowed_values are only provided for string and number fields
+  my $value_types_suitable_for_allowed_values = qr/^(string|number)$/;
+  my @notallowed = grep {
+    !$column_config->{$_}{ignore} &&
+      defined $column_config->{$_}{allowed_values} &&
+      $column_config->{$_}{value_type} !~ $value_types_suitable_for_allowed_values
+  }  keys %$column_config;
+  die "FATAL ERROR: these columns are not suitable for 'allowed_values': ".join(', ', @notallowed)."\n"
+    if (@notallowed);
+
+  # check that a default value, if given, is in allowed_values, if given
+  my @bad_defaults = grep {
+    my $col = $_;
+    !$column_config->{$col}{ignore} &&
+      defined $column_config->{$col}{allowed_values} &&
+      $column_config->{$col}{default} &&
+      0 == grep { $_ eq $column_config->{$col}{default} } @{$column_config->{$col}{allowed_values}}
+    } keys %$column_config;
+  die "FATAL ERROR: 'default' values for these columns are not in their 'allowed_values': ".join(', ', @bad_defaults)."\n"
+    if (@bad_defaults);
 
   # check that any term_lookup values exist in the $config hash as first level keys
   my @dreadful = grep {

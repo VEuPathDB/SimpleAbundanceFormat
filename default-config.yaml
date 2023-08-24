@@ -33,6 +33,13 @@ columns:
     required: false
     comment: use the `collection_duration` column to specify duration in days if not 1
 
+  collection_is_discontinuous:
+    value_type: string
+    allowed_values: [Yes, No]
+    describes: collection
+    default: No
+    column_term: EUPATH_0043258
+
   trap_ID:
     value_type: string # not `id` because trap is not one of our core entity types 
     describes: collection
