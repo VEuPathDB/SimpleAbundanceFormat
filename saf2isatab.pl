@@ -103,14 +103,15 @@ validate_config($config, $flat_entities);
 my $hashified = Text::CSV::Hashify->new({
 					 file => $saf_filename,
 					 key => 'sample_ID',
+					 format => 'aoh',
 					 sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
 					});
 
-# an arrayref of the sample IDs in the input file
-my $sample_IDs = $hashified->keys;
-
 # an arrayref of the column headings in the input file
 my $column_keys = $hashified->fields;
+
+# all the rows
+my $rows = $hashified->all;
 
 # make sure no required columns are missing from column_keys
 # and warn about any unconfigured columns
@@ -126,10 +127,7 @@ my $study_assays = $study->{study_assays} = [];
 my $study_protocols = $study->{study_protocols} //= [];
 
 my @DEFERRED_ERRORS;
-foreach my $sample_ID (@$sample_IDs) {
-  warn "processing sample: $sample_ID\n";
-  my $row = $hashified->record($sample_ID);
-
+foreach my $row (@$rows) {
   # add material entities (descending the entity graph into assay entities also)
   add_material($root_entity, $row, $study, $column_keys, $config);
 }
@@ -168,6 +166,10 @@ sub add_material {
   if (!defined $entity_id && $column_config->{$id_column_name}{default} eq '__AUTO__') {
     $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
   }
+
+  # if there's no entity_id, silently skip processing this entity
+  # (typical use case: leave sample_ID column empty for collections that found nothing at all)
+  return unless (defined $entity_id && $entity_id ne '');
 
   # make a hashref to put the new material nodes in, e.g.
   # $study->{sources}{some_source_id} = ...
