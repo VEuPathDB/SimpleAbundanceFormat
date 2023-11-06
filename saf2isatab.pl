@@ -217,7 +217,7 @@ sub add_column_data {
 
     # handle the characteristics/variables (not comments or protocols)
     if ($col_term) {
-      my $characteristics = $isaref->{characteristics}{"$column ($col_term)"} //= {};
+      my $characteristics = $isaref->{characteristics}{"$column (REF:$col_term)"} //= {};
 
       # if it's a plain text/number/date value then it's a simple case
       # multivalued values can be left as they are
