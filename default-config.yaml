@@ -175,7 +175,6 @@ columns:
   sample_count:
     value_type: number
     describes: sample
-    required: false
     column_term: POPBIO_8000017
     
   location_comment:

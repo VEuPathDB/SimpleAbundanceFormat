@@ -28,7 +28,7 @@ species_identification_method|string|Mandatory|Protocol for asserting species id
 developmental_stage|string|Mandatory|developmental stage e.g. adult
 combined_feeding_and_gonotrophic_status|string|Optional|e.g. fed, unfed, semi-gravid, gravid
 sex|string|Mandatory|sex of specimens e.g. female/male/mixed
-sample_count|integer|Mandatory|count of specimens from collection
+sample_count|integer|Mandatory|count of specimens from quantitative surveillance collections only
 collection_comment|string|Optional|free text comment about the collection event
 sample_comment|string|Optional|free text comment about the sample material
 species_comment|string|Optional|free text comments about the species identification process
@@ -132,18 +132,27 @@ study_terms :
   Babesia microti : NCBITaxon_5868
 
 # SAF2.0 custom columns
+# the name of the column is the first level of indentation
+
 columns :
-  # mark a required column as not-required (not recommended!)
-  - heading : collection_duration
+  # here we're going to 'unrequire' a column. Not recommended
+  collection_duration:
     required : false
 
   # a totally new column
-  # values must be ontology terms provided in (new) study_hosts section of config file
-  - heading : host_species
+  # values must be ontology terms provided in (new) study_hosts section of config
+  host_species:
     required : true
     value_type : term
     term_lookup : study_hosts
     describes : collection
+
+  # here we mark an input column to be completely ignored
+  # even if it's a required default column. For example
+  # removing sample_count for non-surveillance data:
+  sample_count:
+    ignore : true
+
 ```
 
 Custom column configuration fields
