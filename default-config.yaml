@@ -175,7 +175,8 @@ columns:
   sample_count:
     value_type: number
     describes: sample
-    column_term: EUPATH_0043155
+    required: false
+    column_term: POPBIO_8000017
     
   location_comment:
     value_type: comment
