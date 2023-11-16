@@ -205,7 +205,7 @@ columns:
   sample_type:
     value_type: term
     describes: sample
-    default: pool
+    default: surveillance
     column_term: EUPATH_0000611
 
   phenotypes:
@@ -241,7 +241,8 @@ location_qualifiers:
 #
 study_terms:
   pool: OBI_0302716
-
+  surveillance: POPBIO_8000174
+  individual: OBI_0002648
 
 #
 # used internally - unlikely to need overriding
