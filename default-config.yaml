@@ -41,10 +41,18 @@ columns:
     column_term: EUPATH_0043258
 
   trap_ID:
-    value_type: string # not `id` because trap is not one of our core entity types 
+    value_type: string
+    comment: this is not `id` value_type because trap is not one of our core entity types - if multiple named traps are used, make sure trap_number is 1 in each row, and each row has a unique collection_ID - see also collection_site_provider_name if the names are location-based
     describes: collection
     required: false
-    column_term: POPBIO_8000007
+    column_term: POPBIO_8000212
+
+  collection_site_provider_name:
+    value_type: string
+    comment: this would be the location name, such as "Golf course", sometimes provided by the provider
+    describes: location
+    required: false
+    column_term: EUPATH_0000542
 
   GPS_latitude:
     value_type: latitude
