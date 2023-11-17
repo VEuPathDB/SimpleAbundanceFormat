@@ -1,3 +1,8 @@
+# saf2isatab.pl will die if any of these strings are in the config or data files
+# apart from in `placeholder_strings` sections of course
+placeholder_strings:
+  - PLACEHOLDER
+  - XXX
 
 columns:
   location_ID:
