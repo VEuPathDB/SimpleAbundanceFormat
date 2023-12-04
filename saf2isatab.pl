@@ -43,7 +43,9 @@ use Text::CSV::Hashify; # previously we appended a version number 0.11
 use Bio::Parser::ISATab;
 use FindBin;
 use Hash::Merge::Simple qw/merge/;
-use Data::Dumper;
+# use Data::Dumper;
+use Storable qw/dclone/;
+use JSON;
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -65,6 +67,8 @@ my ($config_filename, $saf_filename) = @ARGV;
 
 die "must provide two filenames on commandline: config_file saf_data_file\n"
     unless ($config_filename && $saf_filename && -e $config_filename && -e $saf_filename);
+
+my @DEFERRED_ERRORS;
 
 my $userConfig = LoadFile($config_filename);
 die "problem reading '$config_filename'\n" unless $userConfig;
@@ -97,7 +101,7 @@ my $flat_entities = flatten($root_entity);
 
 # make sure column config contains required info
 validate_config($config, $flat_entities);
-
+check_config_for_placeholder_strings($config);
 
 # load the actual data
 my $hashified = Text::CSV::Hashify->new({
@@ -126,9 +130,9 @@ $study->{study_file_name} = 's_samples.txt';
 my $study_assays = $study->{study_assays} = [];
 my $study_protocols = $study->{study_protocols} //= [];
 
-my @DEFERRED_ERRORS;
 foreach my $row (@$rows) {
   # add material entities (descending the entity graph into assay entities also)
+  check_row_for_placeholder_strings($row, $config);
   add_material($root_entity, $row, $study, $column_keys, $config);
 }
 
@@ -417,6 +421,30 @@ sub validate_config {
   map { $_->{delimiter} //= $default_input_delimiter } grep { $_->{multivalued} } values %$column_config;
 }
 
+sub check_config_for_placeholder_strings {
+  my ($config) = @_;
+  my $copy = dclone($config);
+  my $placeholder_strings = delete $copy->{placeholder_strings};
+  my $config_json = encode_json($copy);
+  foreach my $placeholder_string (@$placeholder_strings) {
+    if ($config_json =~ /$placeholder_string/) {
+      push @DEFERRED_ERRORS, "placeholder string '$placeholder_string' was found in your config file\n";
+    }
+  }
+}
+
+sub check_row_for_placeholder_strings {
+  my ($row, $config) = @_;
+  my $placeholder_strings = $config->{placeholder_strings};
+  my $row_json = encode_json($row);
+  foreach my $placeholder_string (@$placeholder_strings) {
+    if ($row_json =~ /$placeholder_string/) {
+      my $row_IDs_only = { map { ($_ => $row->{$_}) } grep { /ID$/ } keys %$row };
+      my $row_IDs_json = encode_json($row_IDs_only);
+      push @DEFERRED_ERRORS, "placeholder string '$placeholder_string' was found in a row of your data file ($row_IDs_json)\n";
+    }
+  }
+}
 
 sub validate_columns {
   my ($column_keys, $column_config) = @_;
