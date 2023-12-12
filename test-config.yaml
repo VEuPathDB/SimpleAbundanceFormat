@@ -53,6 +53,16 @@ columns:
   junk:
     ignore: true
 
+# units testing
+
+  measurement:
+    value_type: number
+    describes: sample
+    column_term: APOLLO_SV_00000445
+    unit: percent
+    unit_term: UO_0000187
+    description: some measurement reported as a percentage
+
 study_protocols:
   - study_protocol_name : COLLECT
     study_protocol_type : citizen science collection

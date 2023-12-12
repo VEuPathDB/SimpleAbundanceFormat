@@ -234,6 +234,15 @@ sub add_column_data {
 	  # not very efficient with the grep but 'allowed_values' will typically be small
 	}
 
+	# now handle units, if provided
+	if ($col_config->{unit}) {
+	  $characteristics->{unit}{value} = $col_config->{unit};
+	  if ($col_config->{unit_term}) {
+	    $characteristics->{unit}{term_source_ref} = 'TERM';
+	    $characteristics->{unit}{term_accession_number} = $col_config->{unit_term};
+	  }
+	}
+
 	# ontology term values require a lookup from text to term:
       } elsif ($col_config->{value_type} eq 'term') {
 	# get the lookup hash (already validated - no need to check success)
@@ -411,6 +420,15 @@ sub validate_config {
   } keys %$column_config;
   die "FATAL ERROR: these columns contain `protocol` values that are not in study_protocols: ".join(', ', @awful)."\n"
     if (@awful);
+
+  # check that any column with `unit` annotation also has `value_type: number`
+  my @unfortunate = grep {
+    !$column_config->{$_}{ignore} &&
+    $column_config->{$_}{unit} &&
+    $column_config->{$_}{value_type} ne 'number'
+  }  keys %$column_config;
+  die "FATAL ERROR: these columns have units but are not number columns: ".join(', ', @unfortunate)."\n"
+    if (@unfortunate);
 
   ### the following have side effects!
 
