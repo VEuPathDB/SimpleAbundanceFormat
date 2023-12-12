@@ -170,6 +170,8 @@ deprecated | | "deprecation message" | Optional | Used to deprecated SAF1.0 buil
 multivalued | `false` | `true`, `false` | Optional |
 delimiter | ; |  | Optional | character used to delimit multiple values (white-space before and after will be ignored)
 term_lookup | `study_terms` | `study_terms`, `study_sexes`, `study_species`, `study_developmental_stages` | Optional | name of lookup section in config file if the column is `value_type: term`.
+unit | | name of the unit, e.g. 'percent' | Optional | Make sure to provide the `unit_term` also if using this. Note: this is a dataset-wide configuration for the column. Units must be the same for the entire column.
+unit_term | | accession of the unit, e.g. 'UO_0000187' | Human-readable `unit` *must* also be provided if using the term accession.
 ignore | `false` | `true`, `false` | Optional | This will allow an input column to be silently ignored. Even if it is a required column. Your mileage may vary. Do not ignore ID columns!
 
 See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions

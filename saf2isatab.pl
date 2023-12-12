@@ -234,6 +234,15 @@ sub add_column_data {
 	  # not very efficient with the grep but 'allowed_values' will typically be small
 	}
 
+	# now handle units, if provided
+	if ($col_config->{unit}) {
+	  $characteristics->{unit}{value} = $col_config->{unit};
+	  if ($col_config->{unit_term}) {
+	    $characteristics->{unit}{term_source_ref} = 'TERM';
+	    $characteristics->{unit}{term_accession_number} = $col_config->{unit_term};
+	  }
+	}
+
 	# ontology term values require a lookup from text to term:
       } elsif ($col_config->{value_type} eq 'term') {
 	# get the lookup hash (already validated - no need to check success)
