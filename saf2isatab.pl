@@ -421,6 +421,15 @@ sub validate_config {
   die "FATAL ERROR: these columns contain `protocol` values that are not in study_protocols: ".join(', ', @awful)."\n"
     if (@awful);
 
+  # check that any column with `unit` annotation also has `value_type: number`
+  my @unfortunate = grep {
+    !$column_config->{$_}{ignore} &&
+    $column_config->{$_}{unit} &&
+    $column_config->{$_}{value_type} ne 'number'
+  }  keys %$column_config;
+  die "FATAL ERROR: these columns have units but are not number columns: ".join(', ', @unfortunate)."\n"
+    if (@unfortunate);
+
   ### the following have side effects!
 
   # add the default `required: true` to any column that doesn't have it
