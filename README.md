@@ -3,6 +3,15 @@ Formerly known as PopBio-interchange-format. This is a new repo that will build 
 
 This is VEuPathDB's implementation of MIReAD (https://www.nature.com/articles/s41597-019-0042-5) as the prefered file format for abundance and pathogen surveillance data. Internally we convert it to ISA-Tab with the "SAF-Wizard" and then load into our system.
 
+Prerequisites
+-------------
+
+Among other Perl modules, we require this specific branch of Bio-Parser-ISATab
+
+https://github.com/bobular/Bio-Parser-ISATab/tree/multiple-samples
+
+
+
 Description of Simple Abundance Format (SAF)
 --------------------------------------------
 Field Name |Format|Requirement|Details|Multi-valued?
