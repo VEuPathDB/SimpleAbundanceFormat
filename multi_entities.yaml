@@ -4,7 +4,7 @@
   isa_material_type:
     value: spatiotemporal linker
     term_source_ref: TERM
-    term_accession_number: GENEDRIVE_0000001
+    term_accession_number: MULTI_0000001
 
   children:
     - name: entomology
@@ -13,7 +13,7 @@
       isa_material_type:
         value: entomological collection
         term_source_ref: TERM
-        term_accession_number: GENEDRIVE_0000002
+        term_accession_number: MULTI_0000002
 
       children:
         - name: sample
@@ -30,5 +30,5 @@
       isa_material_type:
         value: epidemiology
         term_source_ref: TERM
-        term_accession_number: GENEDRIVE_0000003
+        term_accession_number: MULTI_0000003
 
