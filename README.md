@@ -175,3 +175,17 @@ unit_term | | accession of the unit, e.g. 'UO_0000187' | Human-readable `unit` *
 ignore | `false` | `true`, `false` | Optional | This will allow an input column to be silently ignored. Even if it is a required column. Your mileage may vary. Do not ignore ID columns!
 
 See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions
+
+
+Customisation for other data types
+----------------------------------
+
+The example below generates ISA-Tab for a different "entity diagram"
+as defined in `multi_entities.yaml`. It also reads from two different
+files. At the moment, any columns not in both files have to be
+`required: false` but we are working on that.
+
+```
+./saf2isatab.pl --entities multi_entities.yaml --skip-defaults multi_config.yaml ento_SAF.tsv epi_SAF.tsv
+```
+

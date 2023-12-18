@@ -1,0 +1,34 @@
+- name: linker
+  type: material
+  isa_key: sources
+  isa_material_type:
+    value: spatiotemporal linker
+    term_source_ref: TERM
+    term_accession_number: GENEDRIVE_0000001
+
+  children:
+    - name: entomology
+      type: material
+      isa_key: samples
+      isa_material_type:
+        value: entomological collection
+        term_source_ref: TERM
+        term_accession_number: GENEDRIVE_0000002
+
+      children:
+        - name: sample
+          type: material
+          isa_key: samples
+          isa_material_type:
+            value: specimen source information
+            term_source_ref: EUPATH
+            term_accession_number: EUPATH_0000609
+
+    - name: epidemiology
+      type: material
+      isa_key: samples
+      isa_material_type:
+        value: epidemiology
+        term_source_ref: TERM
+        term_accession_number: GENEDRIVE_0000003
+

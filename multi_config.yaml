@@ -1,0 +1,217 @@
+study_identifier : 2023-multi-test
+study_title : Orthogonal hypothetical data
+study_submission_date : 2023
+study_description : Here we aim to link multiple, orthogonal datasets in time and space.
+
+default_study_protocols:
+  - study_protocol_name : ENTO
+    study_protocol_type : entomological surveillance
+    study_protocol_type_term_source_ref : TERM
+    study_protocol_type_term_accession_number : MULTI_0000014
+
+  - study_protocol_name : EPI
+    study_protocol_type : epidemiological surveillance
+    study_protocol_type_term_source_ref : TERM
+    study_protocol_type_term_accession_number : MULTI_0000015
+
+  - study_protocol_name : PORTIONING 
+    study_protocol_type : material portioning
+    study_protocol_type_term_source_ref : EUPATH
+    study_protocol_type_term_accession_number : OBI_0600018
+
+columns:
+  linker_ID:
+    value_type: id
+    describes: linker
+
+  linker_geohash:
+    value_type: string
+    describes: linker
+    column_term: MULTI_0000004
+
+  linker_latitude:
+    value_type: latitude
+    describes: linker
+    column_term: OBI_0001620
+
+  linker_longitude:
+    value_type: longitude
+    describes: linker
+    column_term: OBI_0001621
+
+  linker_date:
+    value_type: date
+    describes: linker
+    column_term: MULTI_0000005
+
+  ento_ID:
+    value_type: id
+    describes: entomology
+    required: false
+
+  ento_protocol:
+    value_type: protocol_ref
+    describes: entomology
+    default: ENTO
+
+  ento_site_name:
+    value_type: string
+    describes: entomology
+    column_term: MULTI_0000013
+    required: false
+
+  ento_latitude:
+    value_type: latitude
+    describes: entomology
+    column_term: OBI_0001620
+    required: false
+
+  ento_longitude:
+    value_type: longitude
+    describes: entomology
+    column_term: OBI_0001621
+    required: false
+
+  ento_date:
+    value_type: date
+    describes: entomology
+    column_term: MULTI_0000006
+    required: false
+
+  sample_ID:
+    value_type: id
+    describes: sample
+    required: false
+    
+  sample_protocol:
+    value_type: protocol_ref
+    describes: sample
+    default: PORTIONING
+
+  species:
+    value_type: string
+    describes: sample
+    column_term: MULTI_0000007
+    required: false
+
+  count:
+    value_type: number
+    describes: sample
+    column_term: MULTI_0000008
+    required: false
+
+  epi_ID:
+    value_type: id
+    describes: epidemiology
+    required: false
+
+  epi_protocol:
+    value_type: protocol_ref
+    describes: epidemiology
+    default: EPI
+
+  clinic_name:
+    value_type: string
+    describes: epidemiology
+    column_term: MULTI_0000009
+    required: false
+
+  clinic_place:
+    value_type: string
+    describes: epidemiology
+    column_term: MULTI_0000010
+    required: false
+
+  clinic_date:
+    value_type: date
+    describes: epidemiology
+    column_term: MULTI_0000011
+    required: false
+
+  epi_latitude:
+    value_type: latitude
+    describes: epidemiology
+    column_term: OBI_0001620
+    required: false
+
+  epi_longitude:
+    value_type: longitude
+    describes: epidemiology
+    column_term: OBI_0001621
+    required: false
+
+  malaria_cases:
+    value_type: number
+    describes: epidemiology
+    column_term: MULTI_0000012
+    required: false
+
+
+# get rid of all regular SAF2 columns!
+  location_description:
+    ignore: true
+  collection_comment:
+    ignore: true
+  species_comment:
+    ignore: true
+  collection_start_date:
+    ignore: true
+  location_country:
+    ignore: true
+  attractant:
+    ignore: true
+  collection_end_date:
+    ignore: true
+  collection_is_discontinuous:
+    ignore: true
+  location_ADM2:
+    ignore: true
+  species_identification_method:
+    ignore: true
+  trap_duration:
+    ignore: true
+  location_ADM1:
+    ignore: true
+  GPS_latitude:
+    ignore: true
+  location_ID:
+    ignore: true
+  trap_type:
+    ignore: true
+  trap_ID:
+    ignore: true
+  trap_number:
+    ignore: true
+  location_provenance:
+    ignore: true
+  collection_raw_dates:
+    ignore: true
+  phenotypes:
+    ignore: true
+  collection_method:
+    ignore: true
+  GPS_qualifier:
+    ignore: true
+  collection_ID:
+    ignore: true
+  collection_device:
+    ignore: true
+  collection_duration:
+    ignore: true
+  location_comment:
+    ignore: true
+  collection_site_provider_name:
+    ignore: true
+  GPS_longitude:
+    ignore: true
+  location_precision:
+    ignore: true
+  sex:
+    ignore: true
+  developmental_stage:
+    ignore: true
+  sample_count:
+    ignore: true
+
+
+

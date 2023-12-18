@@ -3,13 +3,26 @@
 
 
 #
-# usage: ./saf2isatab.pl config.yaml saf-data.tsv
+# usage: ./saf2isatab.pl config.yaml saf-data.tsv [ saf-data2.tsv ... ]
 #
-# (can handle tsv or csv data)
+# options:
+#
+#   --entities entities.yaml  (tell it what entities we are using)
+#   --skip-defaults           (don't load the default SAF column configurations)
+#
+# note:
+# * can handle tsv or csv data
+# * if using multiple data files
+#   - all files must contain all the mandatory columns
+#   - all files must contain at least one shared root entity
 #
 
 #
 # TO DO:
+#
+#- make column 'requiredness' entity-dependent somehow - so when using multiple files, there
+#  are required columns IF you have the entity_ID column already defined, so maybe it becomes
+#  { true, false, entity_dependent }?
 #
 #- use ordered hashrefs to preserve order
 #
@@ -58,15 +71,17 @@ my $default_input_delimiter = ';';
 my $default_isatab_delimiter = ';';
 my $output_dir = 'temp-isatab';
 my $entities_filename = $FindBin::Bin."/entities.yaml";
+my $skip_defaults;
 
 GetOptions("output_directory|output-directory=s" => \$output_dir,
 	   "entities=s" => \$entities_filename,
+	   "skip-defaults|skip_defaults" => \$skip_defaults,
 	  );
 
-my ($config_filename, $saf_filename) = @ARGV;
+my ($config_filename, @saf_filenames) = @ARGV;
 
-die "must provide two filenames on commandline: config_file saf_data_file\n"
-    unless ($config_filename && $saf_filename && -e $config_filename && -e $saf_filename);
+die "must provide two or more filenames on commandline: config_file saf_data_file(s)\n"
+    unless ($config_filename && -e $config_filename && @saf_filenames);
 
 my @DEFERRED_ERRORS;
 
@@ -74,7 +89,7 @@ my $userConfig = LoadFile($config_filename);
 die "problem reading '$config_filename'\n" unless $userConfig;
 
 # merge the user config into the default config
-my $config = merge $defaultConfig, $userConfig;
+my $config = $skip_defaults ? $userConfig : merge $defaultConfig, $userConfig;
 
 # pull out the column config
 my $column_config = $config->{columns};
@@ -86,7 +101,7 @@ my $study = $config;
 
 # the YAML merge can't handle arrays, so we append the default_study_protocols onto the main protocols
 # (with no checks for duplicates...)
-push @{$study->{study_protocols}}, @{$config->{default_study_protocols}};
+push @{$study->{study_protocols}}, @{$config->{default_study_protocols}} if ($config->{default_study_protocols});
 
 # load the entity graph
 my $entities = LoadFile($entities_filename);
@@ -103,37 +118,42 @@ my $flat_entities = flatten($root_entity);
 validate_config($config, $flat_entities);
 check_config_for_placeholder_strings($config);
 
-# load the actual data
-my $hashified = Text::CSV::Hashify->new({
-					 file => $saf_filename,
-					 key => 'sample_ID',
-					 format => 'aoh',
-					 sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
-					});
 
-# an arrayref of the column headings in the input file
-my $column_keys = $hashified->fields;
+foreach my $saf_filename (@saf_filenames) {
+  die "FATAL ERROR: data file '$saf_filename' not found\n" unless (-e $saf_filename);
 
-# all the rows
-my $rows = $hashified->all;
+  # load the actual data
+  my $hashified = Text::CSV::Hashify->new({
+					   file => $saf_filename,
+					   key => 'sample_ID',
+					   format => 'aoh',
+					   sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
+					  });
 
-# make sure no required columns are missing from column_keys
-# and warn about any unconfigured columns
-$column_keys = validate_columns($column_keys, $column_config);
+  # an arrayref of the column headings in the input file
+  my $column_keys = $hashified->fields;
 
-# append mandatory columns that have default values
-$column_keys = add_mandatory_columns($column_keys, $column_config);
+  # all the rows
+  my $rows = $hashified->all;
 
+  # make sure no required columns are missing from column_keys
+  # and warn about any unconfigured columns
+  $column_keys = validate_columns($column_keys, $column_config);
 
-$study->{study_file_name} = 's_samples.txt';
+  # append mandatory columns that have default values
+  $column_keys = add_mandatory_columns($column_keys, $column_config);
 
-my $study_assays = $study->{study_assays} = [];
-my $study_protocols = $study->{study_protocols} //= [];
+  $study->{study_file_name} = 's_samples.txt';
 
-foreach my $row (@$rows) {
-  # add material entities (descending the entity graph into assay entities also)
-  check_row_for_placeholder_strings($row, $config);
-  add_material($root_entity, $row, $study, $column_keys, $config);
+  my $study_assays = $study->{study_assays} = [];
+  my $study_protocols = $study->{study_protocols} //= [];
+
+  foreach my $row (@$rows) {
+    # add material entities (descending the entity graph into assay entities also)
+    check_row_for_placeholder_strings($row, $config);
+    add_material($root_entity, $row, $study, $column_keys, $config);
+  }
+
 }
 
 if (@DEFERRED_ERRORS) {
@@ -167,7 +187,9 @@ sub add_material {
   my $entity_id = $row->{$id_column_name};
   # warn "id column is $id_column_name and got $entity_id\n";
 
-  if (!defined $entity_id && $column_config->{$id_column_name}{default} eq '__AUTO__') {
+  if (!defined $entity_id &&
+      defined $column_config->{$id_column_name}{default} &&
+      $column_config->{$id_column_name}{default} eq '__AUTO__') {
     $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
   }
 
