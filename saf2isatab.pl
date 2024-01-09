@@ -23,6 +23,8 @@
 #- make column 'requiredness' entity-dependent somehow - so when using multiple files, there
 #  are required columns IF you have the entity_ID column already defined, so maybe it becomes
 #  { true, false, entity_dependent }?
+#  - how to make that work with __AUTO__ entity IDs? - maybe we don't and keep using required=false for now
+#  - make_auto_entity_id should return '' if all column values are ''
 #
 #- use ordered hashrefs to preserve order
 #

@@ -1,3 +1,9 @@
+#
+#
+# ./saf2isatab.pl --skip-default --out multi-isatab --entities multi_entities.yaml multi_config.yaml epi_SAF.tsv ento_SAF.tsv
+#
+#
+
 study_identifier : 2023-multi-test
 study_title : Orthogonal hypothetical data
 study_submission_date : 2023
@@ -145,73 +151,3 @@ columns:
     describes: epidemiology
     column_term: MULTI_0000012
     required: false
-
-
-# get rid of all regular SAF2 columns!
-  location_description:
-    ignore: true
-  collection_comment:
-    ignore: true
-  species_comment:
-    ignore: true
-  collection_start_date:
-    ignore: true
-  location_country:
-    ignore: true
-  attractant:
-    ignore: true
-  collection_end_date:
-    ignore: true
-  collection_is_discontinuous:
-    ignore: true
-  location_ADM2:
-    ignore: true
-  species_identification_method:
-    ignore: true
-  trap_duration:
-    ignore: true
-  location_ADM1:
-    ignore: true
-  GPS_latitude:
-    ignore: true
-  location_ID:
-    ignore: true
-  trap_type:
-    ignore: true
-  trap_ID:
-    ignore: true
-  trap_number:
-    ignore: true
-  location_provenance:
-    ignore: true
-  collection_raw_dates:
-    ignore: true
-  phenotypes:
-    ignore: true
-  collection_method:
-    ignore: true
-  GPS_qualifier:
-    ignore: true
-  collection_ID:
-    ignore: true
-  collection_device:
-    ignore: true
-  collection_duration:
-    ignore: true
-  location_comment:
-    ignore: true
-  collection_site_provider_name:
-    ignore: true
-  GPS_longitude:
-    ignore: true
-  location_precision:
-    ignore: true
-  sex:
-    ignore: true
-  developmental_stage:
-    ignore: true
-  sample_count:
-    ignore: true
-
-
-
