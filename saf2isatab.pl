@@ -41,11 +41,6 @@
 #
 #- specify format for comments (e.g. semicolon delimited, colon prefixed?) and load them separately according to prefix
 #
-#
-# LIMITATIONS:
-#
-#- multiple protocols per assay/material processing aren't handled, but hopefully we won't need them
-#
 
 
 
@@ -292,12 +287,15 @@ sub add_column_data {
 	$characteristics->{term_accession_number} = join $default_isatab_delimiter, @term_accession_numbers;
       }
     } elsif ($col_config->{value_type} eq 'protocol_ref') {
-      # check that the protocol ref in $value is in the study_protocols
-      my @ok = grep { $_->{study_protocol_name} eq $value } @{$config_and_study->{study_protocols}};
-      if (@ok) {
-	$isaref->{protocols}{$value} = {};
-      } else {
-	push @DEFERRED_ERRORS, "protocol ref '$value' not found in study_protocols\n";
+      # always assume splitting as multivalued
+      foreach my $p_ref (split /\s*$col_config->{delimiter}\s*/, $value) {
+	# check that the protocol ref is in the study_protocols
+	my @ok = grep { $_->{study_protocol_name} eq $p_ref } @{$config_and_study->{study_protocols}};
+	if (@ok) {
+	  $isaref->{protocols}{$p_ref} = {};
+	} else {
+	  push @DEFERRED_ERRORS, "protocol ref '$p_ref' not found in study_protocols\n";
+	}
       }
     } elsif ($col_config->{value_type} eq 'comment') {
       $isaref->{comments}{$column} = $value;
@@ -460,7 +458,7 @@ sub validate_config {
   map { $_->{required} //= 1 } values %$column_config;
 
   # add default delimiter for multivalued variables
-  map { $_->{delimiter} //= $default_input_delimiter } grep { $_->{multivalued} } values %$column_config;
+  map { $_->{delimiter} //= $default_input_delimiter } grep { $_->{multivalued} || (defined $_->{value_type} && $_->{value_type} eq 'protocol_ref') } values %$column_config;
 }
 
 sub check_config_for_placeholder_strings {

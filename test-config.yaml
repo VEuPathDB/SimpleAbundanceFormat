@@ -76,6 +76,12 @@ study_protocols:
     study_protocol_type_term_accession_number : OBI_0002740
     study_protocol_description : Do PCR with diagnostic primers to find out the species
 
+  - study_protocol_name : GUESSWORK
+    study_protocol_type : organism identification by complete stab in the dark
+    study_protocol_type_term_source_ref : EUPATH
+    study_protocol_type_term_accession_number : OBI_0002740
+    study_protocol_description : Wave your hands in the air and pray
+
   - study_protocol_name : PATHOGEN
     study_protocol_type : pathogen detection by loop-mediated isothermal amplification assay
     study_protocol_type_term_source_ref : EUPATH

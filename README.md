@@ -176,7 +176,7 @@ allowed_values | | [Value1, Value2, Value3] | Optional | an alternative way to t
 describes | `sample` | `location`, `collection`, `sample`, `organism identification assay`, `genotyping assay`, `insecticide resistance assay`, `pathogen detection assay`, `blood meal assay` | Mandatory | Which aspect of the data does this column describe? 
 protocol | | a `study_protocol_name` from `study_protocols` | Required for `describes: xxx assay` columns; not allowed for others | e.g. `PCR` in the above example. Note that this will blanket apply the protocol to all rows with non-empty values for this column. This differs from the built-in columns `species_identification_method` and `trap_type` that apply protocols row-wise to `organism identification assay` and `collection` assays/events respectively. 
 deprecated | | "deprecation message" | Optional | Used to deprecated SAF1.0 built-in columns. Provide a helpful message.
-multivalued | `false` | `true`, `false` | Optional |
+multivalued | `false` | `true`, `false` | Optional | Note that `protocol_ref` type columns are always processed as multi-valued, but you can change the delimiter if needed (see next attribute)  
 delimiter | ; |  | Optional | character used to delimit multiple values (white-space before and after will be ignored)
 term_lookup | `study_terms` | `study_terms`, `study_sexes`, `study_species`, `study_developmental_stages` | Optional | name of lookup section in config file if the column is `value_type: term`.
 unit | | name of the unit, e.g. 'percent' | Optional | Make sure to provide the `unit_term` also if using this. Note: this is a dataset-wide configuration for the column. Units must be the same for the entire column.
