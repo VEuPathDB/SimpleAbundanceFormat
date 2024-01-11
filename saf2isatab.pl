@@ -589,6 +589,8 @@ sub find_or_create_study_assay {
 #
 # generate an entity_id based on the unique signature of all its column values
 #
+# but return empty string (no ID) if all its columns are empty
+#
 
 # we use the size of this hash to generate the entity ID serial number
 my %seen_signatures;
@@ -601,8 +603,11 @@ sub make_auto_entity_id {
   my $relevant_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
   my $signature = join '::', map { $row->{$_} // '' } @$relevant_columns;
 
+  return '' if ($signature =~ /^:*$/); # if all the columns were empty the signature will be empty or just colons
+
   if (!$seen_signatures{$signature}) {
     my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
+    $new_id =~ s/ /_/g; # change spaces to underscores
     $seen_signatures{$signature} = $new_id;
   }
   return $seen_signatures{$signature};
