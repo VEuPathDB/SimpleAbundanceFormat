@@ -36,8 +36,8 @@ columns:
     describes: linker
     column_term: FIELD_0000009
 
-  ### ADULT ENTOMOLOGY ###
-  adult_ento_ID:
+  ### ADULT ENTOMOLOGY COLLECTION ###
+  adult_ento_collection_ID:
     value_type: id
     describes: adult entomology collection
     default: __AUTO__
@@ -47,96 +47,348 @@ columns:
     describes: adult entomology collection
     default: LINKING
 
-## TO DO: add to SimpleAbundanceFormat repo in new configs directory ##
-  ento_site_name:
+  adult_ento_location:
     value_type: string
-    describes: entomology
-    column_term: MULTI_0000013
+    describes: adult entomology collection
     required: false
+    column_term: EUPATH_0000542
+   
+  t0_household_id:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000013 
 
-  ento_latitude:
+  adult_ento_latitude:
     value_type: latitude
-    describes: entomology
+    describes: adult entomology collection
     column_term: OBI_0001620
     required: false
 
-  ento_longitude:
+  adult_ento_longitude:
     value_type: longitude
-    describes: entomology
+    describes: adult entomology collection
+    required: false
     column_term: OBI_0001621
-    required: false
 
-  ento_date:
+  adult_ento_date:
     value_type: date
-    describes: entomology
-    column_term: MULTI_0000006
+    describes: adult entomology collection
     required: false
+    column_term: FIELD_0000014
 
-  sample_ID:
-    value_type: id
-    describes: sample
-    required: false
-    
-  sample_protocol:
-    value_type: protocol_ref
-    describes: sample
-    default: PORTIONING
+## ignore region, district and village in all sheets
+## because placename stuff will be handled automatically from coordinates
+## (though it won't go down to village level - we can revisit this later if needed)
+  region:
+    ignore: true
+  district:
+    ignore: true
+  cell/ward:
+    igmore: true
+  village:
+    ignore: true
 
-  species:
+  nearest_health_facility:
     value_type: string
-    describes: sample
-    column_term: MULTI_0000007
+    describes: adult entomology collection
     required: false
+    column_term: FIELD_0000015
 
-  count:
+  trap_type: # NOT a protocol like in PopBio - just a regular variable
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000016
+
+  trap_location:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000017
+
+  family_members:
     value_type: number
-    describes: sample
-    column_term: MULTI_0000008
+    describes: adult entomology collection
     required: false
+    column_term: FIELD_0000018
 
-  epi_ID:
+  bednet_usage:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000019
+
+  house_type:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000020
+
+  wall_surface:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000021
+  
+  eaves:
+    value_type: string
+    describes: adult entomology collection
+    required: false
+    column_term: FIELD_0000022
+
+  ### ADULT ENTOMOLOGY SAMPLE ###
+  adult_ento_sample_ID:
     value_type: id
-    describes: epidemiology
-    required: false
+    describes: adult entomology sample
+    default: __AUTO__
 
-  epi_protocol:
-    value_type: protocol_ref
-    describes: epidemiology
-    default: EPI
-
-  clinic_name:
+  morphological_id:
     value_type: string
-    describes: epidemiology
-    column_term: MULTI_0000009
+    describes: adult entomology sample
     required: false
-
-  clinic_place:
+    column_term: FIELD_0000023
+    
+  abdominal_status:
     value_type: string
-    describes: epidemiology
-    column_term: MULTI_0000010
+    describes: adult entomology sample
+    required: false
+    column_term: FIELD_0000024
+
+  molecular_id_pcr:
+    value_type: string
+    describes: adult entomology sample
+    required: false
+    column_term: FIELD_0000025
+
+  csp_elisa:
+    value_type: string
+    describes: adult entomology sample
+    required: false
+    column_term: FIELD_0000026
+
+  blood:
+    value_type: string
+    describes: adult entomology sample
+    required: false
+    column_term: FIELD_0000027
+
+  ### LARVAL ENTOMOLOGICAL COLLECTION ###
+  larval_ento_collection_ID:
+    value_type: id
+    describes: larval entomology collection
+    default: __AUTO__
+
+  t0_habitat_id:
+    value_type: string
+    describes: larval entomology sample
+    required: false
+    column_term: FIELD_0000028
+
+  larval_ento_latitude:
+    value_type: latitude
+    describes: larval entomology collection
+    column_term: OBI_0001620
     required: false
 
-  clinic_date:
+  larval_ento_longitude:
+    value_type: longitude
+    describes: larval entomology collection
+    required: false
+    column_term: OBI_0001621
+
+  larval_ento_date:
     value_type: date
-    describes: epidemiology
-    column_term: MULTI_0000011
+    describes: larval entomology collection
     required: false
+    column_term: FIELD_0000014
+
+  larval_ento_location:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: EUPATH_0000542
+   
+  habitat_permanence:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000029
+  
+  larval_collection_method:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000030
+
+  season:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000031
+
+  weather:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000032
+
+  agricultural_status:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000033
+
+  habitat_type:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000034
+
+  habitat_parameter:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000035
+
+  habitat_length:
+    value_type: number
+    unit: meter
+    unit_term: UO_0000008
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000036
+
+  habitat_width:
+    value_type: number
+    unit: meter
+    unit_term: UO_0000008
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000038
+
+  number_scoops_swipes
+    value_type: number
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000039
+
+  vegetation_type:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000040
+
+  distance_to_house:
+    value_type: string # because it has non-number values like 2,10 and 30-40
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_00000??
+
+  # no values at the moment
+  intervention_present:
+    ignore: true
+
+  livestock:
+    value_type: string
+    describes: larval entomology collection
+    required: false
+    column_term: FIELD_0000041
+
+  ### LARVAL ENTOMOLOGY SAMPLE ###
+  larval_ento_sample_ID:
+    value_type: id
+    describes: larval entomology sample
+    default: __AUTO__
+
+  count_larvae:
+    value_type: number
+    describes: larval entomology sample
+    required: false
+    column_term: FIELD_0000042
+
+  macroinvertebrates_family:
+    value_type: string
+    describes: larval entomology sample
+    required: false
+    column_term: FIELD_0000043
+
+  common_name:
+    value_type: string
+    describes: larval entomology sample
+    required: false
+    column_term: FIELD_0000044
+
+  genus:
+    value_type: string
+    describes: larval entomology sample
+    required: false
+    column_term: FIELD_0000045
+  
+  ### EPI/CLINIC EVENT ###
+  epi_event_ID:
+    value_type: id
+    describes: epidemiology event
+    default: __AUTO__
+
+  health_facility_name:
+    value_type: string
+    describes: epidemiology event
+    required: false
+    column_term: FIELD_0000046
+
+  island:
+    value_type: string
+    describes: epidemiology event
+    required: false
+    column_term: FIELD_0000047
+
+  distance_from_nansio_hospital:
+    value_type: number
+    unit: kilometer
+    unit_term: UO_0010066
+    describes: epidemiology event
+    required: false
+    column_term: FIELD_0000048
 
   epi_latitude:
     value_type: latitude
-    describes: epidemiology
+    describes: epidemiology event
     column_term: OBI_0001620
     required: false
 
   epi_longitude:
     value_type: longitude
-    describes: epidemiology
-    column_term: OBI_0001621
+    describes: epidemiology event
     required: false
+    column_term: OBI_0001621
 
+  clinic_month:
+    value_type: string
+    describes: epidemiology event
+    required: false
+    column_term: FIELD_0000009
+
+  ### EPI RESULT ###
+  epi_result_ID:
+    value_type: id
+    describes: epidemiology result
+    default: __AUTO__
+  
   malaria_cases:
     value_type: number
-    describes: epidemiology
-    column_term: MULTI_0000012
+    describes: epidemiology result
     required: false
+    column_term: FIELD_0000049
 
+  total_tested:
+    value_type: number
+    describes: epidemiology result
+    required: false
+    column_term: FIELD_0000050
+
+  age_group:
+    value_type: string
+    describes: epidemiology result
+    required: false
+    column_term: FIELD_0000051
