@@ -1,3 +1,25 @@
+# usage:
+#
+# ./saf2isatab.pl --skip-defaults --out temp-t0-isatab --entities configs/t0_entities.yaml configs/t0_config.yaml temp-t0-data/*.tsv
+#
+#
+# post-analysis:
+#
+# which events are most frequent?
+#
+# csvsort -c 1 --tabs temp-t0-isatab/s_samples.txt | csvstat --freq-count 20 -c 1
+#
+# view just one of those
+#
+# csvsort -c 1 --tabs temp-t0-isatab/s_samples.txt | csvgrep -c 1 -m kxx-2022-05 | csvlook | less -S
+#
+# (it has adult ento and epi)
+#
+placeholder_strings:
+  - PLACEHOLDER
+  - XXX
+  - Loading...
+
 study_identifier : 2023-t0-poc
 study_title : Transmission Zero proof of concept
 study_submission_date : 2023
@@ -9,9 +31,20 @@ default_study_protocols:
     study_protocol_type_term_source_ref : TERM
     study_protocol_type_term_accession_number : FIELD_0000012
 
+  - study_protocol_name : DATA
+    study_protocol_type : data acquisition
+    study_protocol_type_term_source_ref : TERM
+    study_protocol_type_term_accession_number : FIELD_0000052
+
+  - study_protocol_name : PORTIONING
+    study_protocol_type : material portioning
+    study_protocol_type_term_source_ref : TERM
+    study_protocol_type_term_accession_number : OBI_0600018
+
 columns:
 
   ### LINKER ###
+
   linker_ID:
     value_type: id
     describes: linker
@@ -37,6 +70,7 @@ columns:
     column_term: FIELD_0000009
 
   ### ADULT ENTOMOLOGY COLLECTION ###
+
   adult_ento_collection_ID:
     value_type: id
     describes: adult entomology collection
@@ -85,7 +119,7 @@ columns:
   district:
     ignore: true
   cell/ward:
-    igmore: true
+    ignore: true
   village:
     ignore: true
 
@@ -138,10 +172,16 @@ columns:
     column_term: FIELD_0000022
 
   ### ADULT ENTOMOLOGY SAMPLE ###
+
   adult_ento_sample_ID:
     value_type: id
     describes: adult entomology sample
     default: __AUTO__
+
+  adult_ento_sample_protocol:
+    value_type: protocol_ref
+    describes: adult entomology sample
+    default: PORTIONING
 
   morphological_id:
     value_type: string
@@ -174,10 +214,16 @@ columns:
     column_term: FIELD_0000027
 
   ### LARVAL ENTOMOLOGICAL COLLECTION ###
+
   larval_ento_collection_ID:
     value_type: id
     describes: larval entomology collection
     default: __AUTO__
+
+  larval_ento_protocol:
+    value_type: protocol_ref
+    describes: larval entomology collection
+    default: LINKING
 
   t0_habitat_id:
     value_type: string
@@ -267,7 +313,7 @@ columns:
     required: false
     column_term: FIELD_0000038
 
-  number_scoops_swipes
+  number_scoops_swipes:
     value_type: number
     describes: larval entomology collection
     required: false
@@ -296,10 +342,16 @@ columns:
     column_term: FIELD_0000041
 
   ### LARVAL ENTOMOLOGY SAMPLE ###
+
   larval_ento_sample_ID:
     value_type: id
     describes: larval entomology sample
     default: __AUTO__
+
+  larval_ento_sample_protocol:
+    value_type: protocol_ref
+    describes: larval entomology sample
+    default: PORTIONING
 
   count_larvae:
     value_type: number
@@ -319,17 +371,23 @@ columns:
     required: false
     column_term: FIELD_0000044
 
-  genus:
+  genera:
     value_type: string
     describes: larval entomology sample
     required: false
     column_term: FIELD_0000045
   
   ### EPI/CLINIC EVENT ###
+
   epi_event_ID:
     value_type: id
     describes: epidemiology event
     default: __AUTO__
+
+  epi_protocol:
+    value_type: protocol_ref
+    describes: epidemiology event
+    default: LINKING
 
   health_facility_name:
     value_type: string
@@ -370,11 +428,17 @@ columns:
     column_term: FIELD_0000009
 
   ### EPI RESULT ###
+
   epi_result_ID:
     value_type: id
     describes: epidemiology result
     default: __AUTO__
   
+  epi_result_protocol:
+    value_type: protocol_ref
+    describes: epidemiology result
+    default: DATA
+
   malaria_cases:
     value_type: number
     describes: epidemiology result
