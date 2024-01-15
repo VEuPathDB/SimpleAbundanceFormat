@@ -586,12 +586,12 @@ sub make_auto_entity_id {
 
   return '' if ($signature =~ /^:*$/); # if all the columns were empty the signature will be empty or just colons
 
-  if (!$seen_signatures{$signature}) {
-    my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
+  if (!$seen_signatures{$entity->{name}}{$signature}) {
+    my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %{$seen_signatures{$entity->{name}}};
     $new_id =~ s/ /_/g; # change spaces to underscores
-    $seen_signatures{$signature} = $new_id;
+    $seen_signatures{$entity->{name}}{$signature} = $new_id;
   }
-  return $seen_signatures{$signature};
+  return $seen_signatures{$entity->{name}}{$signature};
 }
 
 
