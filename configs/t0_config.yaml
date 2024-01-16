@@ -329,7 +329,7 @@ columns:
     value_type: string # because it has non-number values like 2,10 and 30-40
     describes: larval entomology collection
     required: false
-    column_term: FIELD_00000??
+    column_term: FIELD_0000053
 
   # no values at the moment
   intervention_present:
