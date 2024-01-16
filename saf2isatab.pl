@@ -110,6 +110,8 @@ die "FATAL ERROR: root entity (in '$entities_filename') must be a material type 
 
 my $root_entity = $entities->[0];
 my $flat_entities = flatten($root_entity);
+my $entity_to_parent = {};
+make_parent_lookup($root_entity, $entity_to_parent);
 
 # make sure column config contains required info
 validate_config($config, $flat_entities);
@@ -172,11 +174,7 @@ sub add_material {
   # this is simple if all *_ID fields are mandatory
   # otherwise we'll need to generate default IDs (which we can add later if providing, e.g. location_ID is a hassle)
 
-  my ($id_column_name) =
-    grep { !$column_config->{$_}{ignore} &&
-	   $column_config->{$_}{describes} eq $entity->{name} &&
-	   $column_config->{$_}{value_type} eq 'id' }
-    keys %$column_config;
+  my $id_column_name = find_id_column_name($column_config, $entity);
 
   die "FATAL ERROR: couldn't find ID column name for $entity->{name}\n"
     unless ($id_column_name);
@@ -187,7 +185,10 @@ sub add_material {
   if (!defined $entity_id &&
       defined $column_config->{$id_column_name}{default} &&
       $column_config->{$id_column_name}{default} eq '__AUTO__') {
-    $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
+    $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study, $entity_to_parent);
+    # store it in the row data (nasty side effect!)
+    # so that make_auto_entity_id can use auto-generated parent IDs
+    $row->{$id_column_name} = $entity_id;
   }
 
   # if there's no entity_id, silently skip processing this entity
@@ -539,6 +540,23 @@ sub flatten {
 }
 
 
+#
+# map each node to its immediate parent, in the $lookup hash
+#
+sub make_parent_lookup {
+  my ($entity, $lookup, $parent) = @_;
+  # Base case: If the entity is undefined, return.
+  return unless defined $entity;
+
+  # If a parent exists, map the current entity to its parent.
+  $lookup->{$entity} = $parent if defined $parent;
+
+  # Recursively call this function for each child, passing the current entity as the new parent.
+  foreach my $child (@{$entity->{children}}) {
+    make_parent_lookup($child, $lookup, $entity);
+  }
+}
+
 sub make_assay_filename {
   my ($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref) = @_;
 
@@ -594,14 +612,28 @@ sub find_or_create_study_assay {
 my %seen_signatures;
 
 sub make_auto_entity_id {
-  my ($entity, $row, $column_keys, $config_and_study) = @_;
+  my ($entity, $row, $column_keys, $config_and_study, $entity_to_parent) = @_;
 
   my $column_config = $config_and_study->{columns};
   # the sort is important for the signature
-  my $relevant_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
-  my $signature = join '::', map { $row->{$_} // '' } @$relevant_columns;
+  my $this_entity_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
+  my $signature = join '::', map { $row->{$_} // '' } @$this_entity_columns;
 
   return '' if ($signature =~ /^:*$/); # if all the columns were empty the signature will be empty or just colons
+
+  # Prefix the signature by the parent entity ID.
+  # We don't need to include ALL parent entity IDs back to the root because
+  # the direct parent's ID should already be unique.
+  my $parent_entity = $entity_to_parent->{$entity};
+  if (defined $parent_entity) { # root entity has no parent
+    my $parent_id_column = find_id_column_name($column_config, $parent_entity);
+    my $parent_id = $row->{$parent_id_column};
+    unless (defined $parent_id) {
+      my $row_snippet = encode_json({ map { $_ => $row->{$_} } @$this_entity_columns });
+      die "Can't find a parent ID for make_auto_entity_id in column >$parent_id_column< at row: $row_snippet\n";
+    }
+    $signature = join '::', $parent_id, $signature;
+  }
 
   if (!$seen_signatures{$signature}) {
     my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
@@ -617,4 +649,18 @@ sub source_ref {
   my ($term_id) = @_;
   my ($prefix, $acc) = split /_/, $term_id;
   return $prefix || 'TERM';
+}
+
+
+sub find_id_column_name {
+  my ($column_config, $entity) = @_;
+
+  # Find the column name that matches the criteria
+  my ($id_column_name) = grep {
+    !$column_config->{$_}{ignore} &&
+      $column_config->{$_}{describes} eq $entity->{name} &&
+      $column_config->{$_}{value_type} eq 'id'
+    } keys %$column_config;
+
+  return $id_column_name;
 }
