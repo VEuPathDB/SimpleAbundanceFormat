@@ -3,13 +3,28 @@
 
 
 #
-# usage: ./saf2isatab.pl config.yaml saf-data.tsv
+# usage: ./saf2isatab.pl config.yaml saf-data.tsv [ saf-data2.tsv ... ]
 #
-# (can handle tsv or csv data)
+# options:
+#
+#   --entities entities.yaml  (tell it what entities we are using)
+#   --skip-defaults           (don't load the default SAF column configurations)
+#
+# note:
+# * can handle tsv or csv data
+# * if using multiple data files
+#   - all files must contain all the mandatory columns
+#   - all files must contain at least one shared root entity
 #
 
 #
 # TO DO:
+#
+#- make column 'requiredness' entity-dependent somehow - so when using multiple files, there
+#  are required columns IF you have the entity_ID column already defined, so maybe it becomes
+#  { true, false, entity_dependent }?
+#  - how to make that work with __AUTO__ entity IDs? - maybe we don't and keep using required=false for now
+#  - make_auto_entity_id should return '' if all column values are ''
 #
 #- use ordered hashrefs to preserve order
 #
@@ -41,6 +56,7 @@ use Hash::Merge::Simple qw/merge/;
 # use Data::Dumper;
 use Storable qw/dclone/;
 use JSON;
+use Tie::Hash::Indexed;
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -53,15 +69,17 @@ my $default_input_delimiter = ';';
 my $default_isatab_delimiter = ';';
 my $output_dir = 'temp-isatab';
 my $entities_filename = $FindBin::Bin."/entities.yaml";
+my $skip_defaults;
 
 GetOptions("output_directory|output-directory=s" => \$output_dir,
 	   "entities=s" => \$entities_filename,
+	   "skip-defaults|skip_defaults" => \$skip_defaults,
 	  );
 
-my ($config_filename, $saf_filename) = @ARGV;
+my ($config_filename, @saf_filenames) = @ARGV;
 
-die "must provide two filenames on commandline: config_file saf_data_file\n"
-    unless ($config_filename && $saf_filename && -e $config_filename && -e $saf_filename);
+die "must provide two or more filenames on commandline: config_file saf_data_file(s)\n"
+    unless ($config_filename && -e $config_filename && @saf_filenames);
 
 my @DEFERRED_ERRORS;
 
@@ -69,7 +87,7 @@ my $userConfig = LoadFile($config_filename);
 die "problem reading '$config_filename'\n" unless $userConfig;
 
 # merge the user config into the default config
-my $config = merge $defaultConfig, $userConfig;
+my $config = $skip_defaults ? $userConfig : merge $defaultConfig, $userConfig;
 
 # pull out the column config
 my $column_config = $config->{columns};
@@ -81,7 +99,7 @@ my $study = $config;
 
 # the YAML merge can't handle arrays, so we append the default_study_protocols onto the main protocols
 # (with no checks for duplicates...)
-push @{$study->{study_protocols}}, @{$config->{default_study_protocols}};
+push @{$study->{study_protocols}}, @{$config->{default_study_protocols}} if ($config->{default_study_protocols});
 
 # load the entity graph
 my $entities = LoadFile($entities_filename);
@@ -93,42 +111,49 @@ die "FATAL ERROR: root entity (in '$entities_filename') must be a material type 
 
 my $root_entity = $entities->[0];
 my $flat_entities = flatten($root_entity);
+my $entity_to_parent = {};
+make_parent_lookup($root_entity, $entity_to_parent);
 
 # make sure column config contains required info
 validate_config($config, $flat_entities);
 check_config_for_placeholder_strings($config);
 
-# load the actual data
-my $hashified = Text::CSV::Hashify->new({
-					 file => $saf_filename,
-					 key => 'sample_ID',
-					 format => 'aoh',
-					 sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
-					});
 
-# an arrayref of the column headings in the input file
-my $column_keys = $hashified->fields;
+foreach my $saf_filename (@saf_filenames) {
+  die "FATAL ERROR: data file '$saf_filename' not found\n" unless (-e $saf_filename);
 
-# all the rows
-my $rows = $hashified->all;
+  # load the actual data
+  my $hashified = Text::CSV::Hashify->new({
+					   file => $saf_filename,
+					   key => 'sample_ID',
+					   format => 'aoh',
+					   sep_char => $saf_filename =~ /\.csv$/ ? ',' : "\t",
+					  });
 
-# make sure no required columns are missing from column_keys
-# and warn about any unconfigured columns
-$column_keys = validate_columns($column_keys, $column_config);
+  # an arrayref of the column headings in the input file
+  my $column_keys = $hashified->fields;
 
-# append mandatory columns that have default values
-$column_keys = add_mandatory_columns($column_keys, $column_config);
+  # all the rows
+  my $rows = $hashified->all;
 
+  # make sure no required columns are missing from column_keys
+  # and warn about any unconfigured columns
+  $column_keys = validate_columns($column_keys, $column_config);
 
-$study->{study_file_name} = 's_samples.txt';
+  # append mandatory columns that have default values
+  $column_keys = add_mandatory_columns($column_keys, $column_config);
 
-my $study_assays = $study->{study_assays} = [];
-my $study_protocols = $study->{study_protocols} //= [];
+  $study->{study_file_name} = 's_samples.txt';
 
-foreach my $row (@$rows) {
-  # add material entities (descending the entity graph into assay entities also)
-  check_row_for_placeholder_strings($row, $config);
-  add_material($root_entity, $row, $study, $column_keys, $config);
+  my $study_assays = $study->{study_assays} = [];
+  my $study_protocols = $study->{study_protocols} //= [];
+
+  foreach my $row (@$rows) {
+    # add material entities (descending the entity graph into assay entities also)
+    check_row_for_placeholder_strings($row, $config);
+    add_material($root_entity, $row, $study, $column_keys, $config);
+  }
+
 }
 
 if (@DEFERRED_ERRORS) {
@@ -150,11 +175,7 @@ sub add_material {
   # this is simple if all *_ID fields are mandatory
   # otherwise we'll need to generate default IDs (which we can add later if providing, e.g. location_ID is a hassle)
 
-  my ($id_column_name) =
-    grep { !$column_config->{$_}{ignore} &&
-	   $column_config->{$_}{describes} eq $entity->{name} &&
-	   $column_config->{$_}{value_type} eq 'id' }
-    keys %$column_config;
+  my $id_column_name = find_id_column_name($column_config, $entity);
 
   die "FATAL ERROR: couldn't find ID column name for $entity->{name}\n"
     unless ($id_column_name);
@@ -162,8 +183,13 @@ sub add_material {
   my $entity_id = $row->{$id_column_name};
   # warn "id column is $id_column_name and got $entity_id\n";
 
-  if (!defined $entity_id && $column_config->{$id_column_name}{default} eq '__AUTO__') {
-    $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
+  if (!defined $entity_id &&
+      defined $column_config->{$id_column_name}{default} &&
+      $column_config->{$id_column_name}{default} eq '__AUTO__') {
+    $entity_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study, $entity_to_parent);
+    # store it in the row data (nasty side effect!)
+    # so that make_auto_entity_id can use auto-generated parent IDs
+    $row->{$id_column_name} = $entity_id;
   }
 
   # if there's no entity_id, silently skip processing this entity
@@ -172,7 +198,7 @@ sub add_material {
 
   # make a hashref to put the new material nodes in, e.g.
   # $study->{sources}{some_source_id} = ...
-  $isaref->{$entity->{isa_key}} //= {}; # could/should be ordered hashref
+  $isaref->{$entity->{isa_key}} //= ordered_hashref();
   my $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id};
 
   # only make a node once (i.e. don't reprocess a location multiple times for each collection and sample)
@@ -218,7 +244,7 @@ sub add_column_data {
 
     # handle the characteristics/variables (not comments or protocols)
     if ($col_term) {
-      my $characteristics = $isaref->{characteristics}{"$column (REF:$col_term)"} //= {};
+      my $characteristics = ($isaref->{characteristics} //= ordered_hashref())->{"$column (REF:$col_term)"} //= ordered_hashref();
 
       # if it's a plain text/number/date value then it's a simple case
       # multivalued values can be left as they are
@@ -270,7 +296,7 @@ sub add_column_data {
 	# check that the protocol ref is in the study_protocols
 	my @ok = grep { $_->{study_protocol_name} eq $p_ref } @{$config_and_study->{study_protocols}};
 	if (@ok) {
-	  $isaref->{protocols}{$p_ref} = {};
+	  $isaref->{protocols}{$p_ref} = ordered_hashref();
 	} else {
 	  push @DEFERRED_ERRORS, "protocol ref '$p_ref' not found in study_protocols\n";
 	}
@@ -330,14 +356,14 @@ sub add_assay {
     my $study_assay = find_or_create_study_assay($config_and_study, $study_assay_measurement_type, $assay_filename);
 
     # make an assay ID - which will be '' if there is no data for the assay
-    my $assay_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study);
+    my $assay_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study, $entity_to_parent);
 
     if ($assay_id) {
       # now add the link sample and assay
-      my $assay = $study_assay->{samples}{$row->{sample_ID}}{assays}{$assay_id} //= {};
+      my $assay = ($study_assay->{samples}{$row->{sample_ID}}{assays} //= ordered_hashref())->{$assay_id} //= ordered_hashref();
 
       # add the column-wise protocol ref explicitly
-      $assay->{protocols}{$column_protocol_ref} = {}
+      $assay->{protocols}{$column_protocol_ref} = ordered_hashref()
 	if ($column_protocol_ref);
       # otherwise row-wise protocol ref will be added from the input $row by add_column_data
       add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
@@ -522,6 +548,23 @@ sub flatten {
 }
 
 
+#
+# map each node to its immediate parent, in the $lookup hash
+#
+sub make_parent_lookup {
+  my ($entity, $lookup, $parent) = @_;
+  # Base case: If the entity is undefined, return.
+  return unless defined $entity;
+
+  # If a parent exists, map the current entity to its parent.
+  $lookup->{$entity} = $parent if defined $parent;
+
+  # Recursively call this function for each child, passing the current entity as the new parent.
+  foreach my $child (@{$entity->{children}}) {
+    make_parent_lookup($child, $lookup, $entity);
+  }
+}
+
 sub make_assay_filename {
   my ($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref) = @_;
 
@@ -559,7 +602,7 @@ sub find_or_create_study_assay {
      study_assay_measurement_type => $study_assay_measurement_type,
      study_assay_measurement_type_term_source_ref => source_ref($config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type}),
      study_assay_measurement_type_term_accession_number => $config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type},
-     samples => {},
+     samples => ordered_hashref(),
     };
 
   push @{$config_and_study->{study_assays}}, $study_assay;
@@ -577,14 +620,28 @@ sub find_or_create_study_assay {
 my %seen_signatures;
 
 sub make_auto_entity_id {
-  my ($entity, $row, $column_keys, $config_and_study) = @_;
+  my ($entity, $row, $column_keys, $config_and_study, $entity_to_parent) = @_;
 
   my $column_config = $config_and_study->{columns};
   # the sort is important for the signature
-  my $relevant_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
-  my $signature = join '::', map { $row->{$_} // '' } @$relevant_columns;
+  my $this_entity_columns = [ sort grep { $column_config->{$_}{describes} eq $entity->{name} } @$column_keys ];
+  my $signature = join '::', map { $row->{$_} // '' } @$this_entity_columns;
 
   return '' if ($signature =~ /^:*$/); # if all the columns were empty the signature will be empty or just colons
+
+  # Prefix the signature by the parent entity ID.
+  # We don't need to include ALL parent entity IDs back to the root because
+  # the direct parent's ID should already be unique.
+  my $parent_entity = $entity_to_parent->{$entity};
+  if (defined $parent_entity) { # root entity has no parent
+    my $parent_id_column = find_id_column_name($column_config, $parent_entity);
+    my $parent_id = $row->{$parent_id_column};
+    unless (defined $parent_id) {
+      my $row_snippet = encode_json({ map { $_ => $row->{$_} } @$this_entity_columns });
+      die "Can't find a parent ID for make_auto_entity_id in column >$parent_id_column< at row: $row_snippet\n";
+    }
+    $signature = join '::', $parent_id, $signature;
+  }
 
   if (!$seen_signatures{$entity->{name}}{$signature}) {
     my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %{$seen_signatures{$entity->{name}}};
@@ -600,4 +657,24 @@ sub source_ref {
   my ($term_id) = @_;
   my ($prefix, $acc) = split /_/, $term_id;
   return $prefix || 'TERM';
+}
+
+
+sub find_id_column_name {
+  my ($column_config, $entity) = @_;
+
+  # Find the column name that matches the criteria
+  my ($id_column_name) = grep {
+    !$column_config->{$_}{ignore} &&
+      $column_config->{$_}{describes} eq $entity->{name} &&
+      $column_config->{$_}{value_type} eq 'id'
+    } keys %$column_config;
+
+  return $id_column_name;
+}
+
+sub ordered_hashref {
+  my $ref = {};
+  tie %{$ref}, 'Tie::Hash::Indexed';
+  return $ref;
 }

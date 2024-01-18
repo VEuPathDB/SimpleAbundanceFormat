@@ -3,6 +3,15 @@ Formerly known as PopBio-interchange-format. This is a new repo that will build 
 
 This is VEuPathDB's implementation of MIReAD (https://www.nature.com/articles/s41597-019-0042-5) as the prefered file format for abundance and pathogen surveillance data. Internally we convert it to ISA-Tab with the "SAF-Wizard" and then load into our system.
 
+Prerequisites
+-------------
+
+Among other Perl modules, we require this specific branch of Bio-Parser-ISATab
+
+https://github.com/bobular/Bio-Parser-ISATab/tree/multiple-samples
+
+
+
 Description of Simple Abundance Format (SAF)
 --------------------------------------------
 Field Name |Format|Requirement|Details|Multi-valued?
@@ -175,3 +184,17 @@ unit_term | | accession of the unit, e.g. 'UO_0000187' | Human-readable `unit` *
 ignore | `false` | `true`, `false` | Optional | This will allow an input column to be silently ignored. Even if it is a required column. Your mileage may vary. Do not ignore ID columns!
 
 See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions
+
+
+Customisation for other data types
+----------------------------------
+
+The example below generates ISA-Tab for a different "entity diagram"
+as defined in `multi_entities.yaml`. It also reads from two different
+files. At the moment, any columns not in both files have to be
+`required: false` but we are working on that.
+
+```
+./saf2isatab.pl --entities multi_entities.yaml --skip-defaults multi_config.yaml ento_SAF.tsv epi_SAF.tsv
+```
+
