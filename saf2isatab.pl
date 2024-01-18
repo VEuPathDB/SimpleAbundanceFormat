@@ -240,6 +240,8 @@ sub add_column_data {
       $value = $col_config->{default} // '';
     }
 
+    next unless (defined $value && $value ne '');
+
     # handle the characteristics/variables (not comments or protocols)
     if ($col_term) {
       my $characteristics = ($isaref->{characteristics} //= ordered_hashref())->{"$column (REF:$col_term)"} //= ordered_hashref();
@@ -353,14 +355,19 @@ sub add_assay {
     my $assay_filename = make_assay_filename($study_assay_measurement_type, $row_protocol_ref, $column_protocol_ref);
     my $study_assay = find_or_create_study_assay($config_and_study, $study_assay_measurement_type, $assay_filename);
 
-    # now add the link from sample ID to the actual assay
-    my $assay_id = $row->{sample_ID}.'.'.($row_protocol_ref || $column_protocol_ref);
-    my $assay = ($study_assay->{samples}{$row->{sample_ID}}{assays} //= ordered_hashref())->{$assay_id} //= ordered_hashref();
-    # add the column-wise protocol ref explicitly
-    $assay->{protocols}{$column_protocol_ref} = ordered_hashref()
-      if ($column_protocol_ref);
-    # otherwise row-wise protocol ref will be added from the input $row by add_column_data
-    add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
+    # make an assay ID - which will be '' if there is no data for the assay
+    my $assay_id = make_auto_entity_id($entity, $row, $column_keys, $config_and_study, $entity_to_parent);
+
+    if ($assay_id) {
+      # now add the link sample and assay
+      my $assay = ($study_assay->{samples}{$row->{sample_ID}}{assays} //= ordered_hashref())->{$assay_id} //= ordered_hashref();
+
+      # add the column-wise protocol ref explicitly
+      $assay->{protocols}{$column_protocol_ref} = ordered_hashref()
+	if ($column_protocol_ref);
+      # otherwise row-wise protocol ref will be added from the input $row by add_column_data
+      add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
+    }
   }
 }
 
@@ -636,12 +643,12 @@ sub make_auto_entity_id {
     $signature = join '::', $parent_id, $signature;
   }
 
-  if (!$seen_signatures{$signature}) {
-    my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %seen_signatures;
+  if (!$seen_signatures{$entity->{name}}{$signature}) {
+    my $new_id = sprintf '%s-%05d', $entity->{name}, 1 + keys %{$seen_signatures{$entity->{name}}};
     $new_id =~ s/ /_/g; # change spaces to underscores
-    $seen_signatures{$signature} = $new_id;
+    $seen_signatures{$entity->{name}}{$signature} = $new_id;
   }
-  return $seen_signatures{$signature};
+  return $seen_signatures{$entity->{name}}{$signature};
 }
 
 
