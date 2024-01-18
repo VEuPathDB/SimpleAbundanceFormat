@@ -56,6 +56,7 @@ use Hash::Merge::Simple qw/merge/;
 # use Data::Dumper;
 use Storable qw/dclone/;
 use JSON;
+use Tie::Hash::Indexed;
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -197,7 +198,7 @@ sub add_material {
 
   # make a hashref to put the new material nodes in, e.g.
   # $study->{sources}{some_source_id} = ...
-  $isaref->{$entity->{isa_key}} //= {}; # could/should be ordered hashref
+  $isaref->{$entity->{isa_key}} //= ordered_hashref();
   my $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id};
 
   # only make a node once (i.e. don't reprocess a location multiple times for each collection and sample)
@@ -241,7 +242,7 @@ sub add_column_data {
 
     # handle the characteristics/variables (not comments or protocols)
     if ($col_term) {
-      my $characteristics = $isaref->{characteristics}{"$column (REF:$col_term)"} //= {};
+      my $characteristics = ($isaref->{characteristics} //= ordered_hashref())->{"$column (REF:$col_term)"} //= ordered_hashref();
 
       # if it's a plain text/number/date value then it's a simple case
       # multivalued values can be left as they are
@@ -293,7 +294,7 @@ sub add_column_data {
 	# check that the protocol ref is in the study_protocols
 	my @ok = grep { $_->{study_protocol_name} eq $p_ref } @{$config_and_study->{study_protocols}};
 	if (@ok) {
-	  $isaref->{protocols}{$p_ref} = {};
+	  $isaref->{protocols}{$p_ref} = ordered_hashref();
 	} else {
 	  push @DEFERRED_ERRORS, "protocol ref '$p_ref' not found in study_protocols\n";
 	}
@@ -354,9 +355,9 @@ sub add_assay {
 
     # now add the link from sample ID to the actual assay
     my $assay_id = $row->{sample_ID}.'.'.($row_protocol_ref || $column_protocol_ref);
-    my $assay = $study_assay->{samples}{$row->{sample_ID}}{assays}{$assay_id} //= {};
+    my $assay = ($study_assay->{samples}{$row->{sample_ID}}{assays} //= ordered_hashref())->{$assay_id} //= ordered_hashref();
     # add the column-wise protocol ref explicitly
-    $assay->{protocols}{$column_protocol_ref} = {}
+    $assay->{protocols}{$column_protocol_ref} = ordered_hashref()
       if ($column_protocol_ref);
     # otherwise row-wise protocol ref will be added from the input $row by add_column_data
     add_column_data($assay, $column_keys, $row, $entity, $config_and_study);
@@ -594,7 +595,7 @@ sub find_or_create_study_assay {
      study_assay_measurement_type => $study_assay_measurement_type,
      study_assay_measurement_type_term_source_ref => source_ref($config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type}),
      study_assay_measurement_type_term_accession_number => $config_and_study->{study_assay_measurement_type_term_lookup}{$study_assay_measurement_type},
-     samples => {},
+     samples => ordered_hashref(),
     };
 
   push @{$config_and_study->{study_assays}}, $study_assay;
@@ -663,4 +664,10 @@ sub find_id_column_name {
     } keys %$column_config;
 
   return $id_column_name;
+}
+
+sub ordered_hashref {
+  my $ref = {};
+  tie %{$ref}, 'Tie::Hash::Indexed';
+  return $ref;
 }
