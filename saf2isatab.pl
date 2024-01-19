@@ -369,90 +369,85 @@ sub validate_config {
 
   my $column_config = $config->{columns};
   # check that every column definition has `describes` and `value_type`
-  my @bad = grep { (!$column_config->{$_}{describes} || !$column_config->{$_}{value_type}) && !$column_config->{$_}{ignore} } keys %$column_config;
-  die "FATAL ERROR: column configuration is missing required attributes 'describes' and/or 'value_type' for columns: ".join(', ', @bad)."\n" if (@bad);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  (!$col->{describes} || !$col->{value_type}) && !$col->{ignore};
+		}, "column configuration is missing required attributes 'describes' and/or 'value_type' for columns");
 
   # now check that all the columns `describe` an existing entity
   my %entity_names = map { ($_->{name} => 1) } @$flat_entities;
-  my @worse = grep { !$column_config->{$_}{ignore} && !$entity_names{$column_config->{$_}{describes}} } keys %$column_config;
-  die "FATAL ERROR: these columns 'describe' entities that do not exist: ".join(', ', @worse)."\n"
-    if (@worse);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} && !$entity_names{$col->{describes}};
+		}, "these columns 'describe' entities that do not exist");
 
   # check that value_type is supported
   my $value_type_validation = qr/^(term|number|string|date|latitude|longitude|id|comment|protocol_ref)$/;
-  my @unsupported = grep { !$column_config->{$_}{ignore} &&
-			     $column_config->{$_}{value_type} !~ $value_type_validation } keys %$column_config;
-  die "FATAL ERROR: these columns have an unsupported 'value_type': ".join(', ', @unsupported)."\n" if (@unsupported);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    $col->{value_type} !~ $value_type_validation;
+		}, "these columns have an unsupported 'value_type'");
 
   # check that every non-deprecated term|number|string|date|latitude|longitude column has a column_term
   my $value_types_requiring_column_term = qr/^(term|number|string|date|latitude|longitude)$/;
-  my @terrible = grep {
-    !$column_config->{$_}{ignore} &&
-    $column_config->{$_}{value_type} =~ $value_types_requiring_column_term &&
-    !$column_config->{$_}{deprecated} &&
-    !$column_config->{$_}{column_term}
-  } keys %$column_config;
-  die "FATAL ERROR: these columns don't have a column_term (e.g. a variable IRI): ".join(', ', @terrible)."\n"
-    if (@terrible);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    $col->{value_type} =~ $value_types_requiring_column_term &&
+		    !$col->{deprecated} &&
+		    !$col->{column_term};
+		}, "these columns don't have a column_term (e.g. a variable IRI)");
 
   # check that term columns do not have allowed_values
-  my @disallowed = grep {
-    !$column_config->{$_}{ignore} &&
-    $column_config->{$_}{value_type} eq 'term' &&
-    defined $column_config->{$_}{allowed_values}
-  } keys %$column_config;
-  die "FATAL ERROR: these 'value_type: term' columns cannot have 'allowed_values': ".join(', ', @disallowed)."\n"
-    if (@disallowed);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    $col->{value_type} eq 'term' &&
+		    defined $col->{allowed_values};
+		}, "these 'value_type: term' columns cannot have 'allowed_values'");
 
   # check that allowed_values are only provided for string and number fields
+  # (pretty much a repeat of the above, but we'll keep it for now)
   my $value_types_suitable_for_allowed_values = qr/^(string|number)$/;
-  my @notallowed = grep {
-    !$column_config->{$_}{ignore} &&
-      defined $column_config->{$_}{allowed_values} &&
-      $column_config->{$_}{value_type} !~ $value_types_suitable_for_allowed_values
-  }  keys %$column_config;
-  die "FATAL ERROR: these columns are not suitable for 'allowed_values': ".join(', ', @notallowed)."\n"
-    if (@notallowed);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    defined $col->{allowed_values} &&
+		    $col->{value_type} !~ $value_types_suitable_for_allowed_values;
+		}, "these columns are not suitable for 'allowed_values'");
 
   # check that a default value, if given, is in allowed_values, if given
-  my @bad_defaults = grep {
-    my $col = $_;
-    !$column_config->{$col}{ignore} &&
-      defined $column_config->{$col}{allowed_values} &&
-      $column_config->{$col}{default} &&
-      0 == grep { $_ eq $column_config->{$col}{default} } @{$column_config->{$col}{allowed_values}}
-    } keys %$column_config;
-  die "FATAL ERROR: 'default' values for these columns are not in their 'allowed_values': ".join(', ', @bad_defaults)."\n"
-    if (@bad_defaults);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    defined $col->{allowed_values} &&
+		    $col->{default} &&
+		    0 == grep { $_ eq $col->{default} } @{$col->{allowed_values}};
+		}, "'default' values for these columns are not in their 'allowed_values'");
 
   # check that any term_lookup values exist in the $config hash as first level keys
-  my @dreadful = grep {
-    !$column_config->{$_}{ignore} &&
-    $column_config->{$_}{term_lookup} &&
-    !exists $config->{$column_config->{$_}{term_lookup}}
-  } keys %$column_config;
-  die "FATAL ERROR: these columns have term_lookup values that are not defined in the config file:".join(', ', @dreadful)."\n"
-    if (@dreadful);
-
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    $col->{term_lookup} &&
+		    !exists $config->{$col->{term_lookup}};
+		}, "these columns have term_lookup values that are not defined in the config file");
 
   # check that any `protocol` values for assay variables are in the study_protocols
-  # (nested grep is not too pretty)
-  my @awful = grep {
-    my $column = $_;
-    $column_config->{$column}{protocol} &&
-    !grep { $_->{study_protocol_name} eq $column_config->{$column}{protocol} } @{$config->{study_protocols}}
-  } keys %$column_config;
-  die "FATAL ERROR: these columns contain `protocol` values that are not in study_protocols: ".join(', ', @awful)."\n"
-    if (@awful);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  $col->{protocol} &&
+		    !grep { $_->{study_protocol_name} eq $col->{protocol} } @{$config->{study_protocols}};
+		}, "these columns contain `protocol` values that are not in study_protocols");
 
   # check that any column with `unit` annotation also has `value_type: number`
-  my @unfortunate = grep {
-    !$column_config->{$_}{ignore} &&
-    $column_config->{$_}{unit} &&
-    $column_config->{$_}{value_type} ne 'number'
-  }  keys %$column_config;
-  die "FATAL ERROR: these columns have units but are not number columns: ".join(', ', @unfortunate)."\n"
-    if (@unfortunate);
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  !$col->{ignore} &&
+		    $col->{unit} &&
+		    $col->{value_type} ne 'number';
+		}, "these columns have units but are not number columns");
 
   ### the following have side effects!
 
@@ -462,6 +457,15 @@ sub validate_config {
   # add default delimiter for multivalued variables
   map { $_->{delimiter} //= $default_input_delimiter } grep { $_->{multivalued} } values %$column_config;
 }
+
+# not to be confused with validate_columns below!
+# this is just a helper for validate_config
+sub validate_cols {
+  my ($column_config, $condition, $error_message) = @_;
+  my @bad = grep { $condition->($column_config->{$_}) } keys %$column_config;
+  die "FATAL ERROR: $error_message: " . join(', ', @bad) . "\n" if @bad;
+}
+
 
 sub check_config_for_placeholder_strings {
   my ($config) = @_;
