@@ -182,7 +182,7 @@ term_lookup | `study_terms` | `study_terms`, `study_sexes`, `study_species`, `st
 unit | | name of the unit, e.g. 'percent' | Optional | Make sure to provide the `unit_term` also if using this. Note: this is a dataset-wide configuration for the column. Units must be the same for the entire column.
 unit_term | | accession of the unit, e.g. 'UO_0000187' | Human-readable `unit` *must* also be provided if using the term accession.
 ignore | `false` | `true`, `false` | Optional | This will allow an input column to be silently ignored. Even if it is a required column. Your mileage may vary. Do not ignore ID columns!
-
+scale_factor | none, 1 | number | Optional | for `value_type: number` columns, the value will be multiplied by this factor before export to ISA-Tab. Note that `allowed_values` checks are made *before* the multiplication.
 See [default-column-config.yaml](default-column-config.yaml) for the built-in column definitions
 
 

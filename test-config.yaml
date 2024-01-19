@@ -62,6 +62,7 @@ columns:
     unit: percent
     unit_term: UO_0000187
     description: some measurement reported as a percentage
+    scale_factor: 1.5
 
 study_protocols:
   - study_protocol_name : COLLECT

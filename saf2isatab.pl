@@ -61,6 +61,7 @@ use Hash::Merge::Simple qw/merge/;
 # use Data::Dumper;
 use Storable qw/dclone/;
 use JSON;
+use Scalar::Util qw/looks_like_number/;
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -258,6 +259,12 @@ sub add_column_data {
 	  # not very efficient with the grep but 'allowed_values' will typically be small
 	}
 
+	# check that number values really are numbers, for the appropriate column types
+	if ($col_config->{value_type} =~ /^(number|latitude|longitude)$/) {
+	  push @DEFERRED_ERRORS, "value '$value' is not numeric in number or lat/long column '$column'\n"
+	    unless (looks_like_number($value));
+	}
+
 	# now handle units, if provided
 	if ($col_config->{unit}) {
 	  $characteristics->{unit}{value} = $col_config->{unit};
@@ -265,6 +272,11 @@ sub add_column_data {
 	    $characteristics->{unit}{term_source_ref} = 'TERM';
 	    $characteristics->{unit}{term_accession_number} = $col_config->{unit_term};
 	  }
+	}
+
+	# handle scale_factor if provided - will always be numbers due to config validation
+	if (defined $col_config->{scale_factor}) {
+	  $characteristics->{value} *= $col_config->{scale_factor};
 	}
 
 	# ontology term values require a lookup from text to term:
@@ -448,6 +460,12 @@ sub validate_config {
 		  defined $col->{scale_factor} && # scale_factor could be zero in extreme edge cases
 		    $col->{value_type} ne 'number';
 		}, "these columns have scale_factor but are not number columns");
+
+  # check that scale_factor is a number
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  defined $col->{scale_factor} && !looks_like_number($col->{scale_factor});
+		}, "the scale_factor annotation must be a number for these columns");
 
   ### the following have side effects!
 
