@@ -371,30 +371,28 @@ sub validate_config {
   # check that every column definition has `describes` and `value_type`
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  (!$col->{describes} || !$col->{value_type}) && !$col->{ignore};
+		  (!$col->{describes} || !$col->{value_type});
 		}, "column configuration is missing required attributes 'describes' and/or 'value_type' for columns");
 
   # now check that all the columns `describe` an existing entity
   my %entity_names = map { ($_->{name} => 1) } @$flat_entities;
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} && !$entity_names{$col->{describes}};
+		  !$entity_names{$col->{describes}};
 		}, "these columns 'describe' entities that do not exist");
 
   # check that value_type is supported
   my $value_type_validation = qr/^(term|number|string|date|latitude|longitude|id|comment|protocol_ref)$/;
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    $col->{value_type} !~ $value_type_validation;
+		  $col->{value_type} !~ $value_type_validation;
 		}, "these columns have an unsupported 'value_type'");
 
   # check that every non-deprecated term|number|string|date|latitude|longitude column has a column_term
   my $value_types_requiring_column_term = qr/^(term|number|string|date|latitude|longitude)$/;
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    $col->{value_type} =~ $value_types_requiring_column_term &&
+		  $col->{value_type} =~ $value_types_requiring_column_term &&
 		    !$col->{deprecated} &&
 		    !$col->{column_term};
 		}, "these columns don't have a column_term (e.g. a variable IRI)");
@@ -402,8 +400,7 @@ sub validate_config {
   # check that term columns do not have allowed_values
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    $col->{value_type} eq 'term' &&
+		  $col->{value_type} eq 'term' &&
 		    defined $col->{allowed_values};
 		}, "these 'value_type: term' columns cannot have 'allowed_values'");
 
@@ -412,16 +409,14 @@ sub validate_config {
   my $value_types_suitable_for_allowed_values = qr/^(string|number)$/;
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    defined $col->{allowed_values} &&
+		  defined $col->{allowed_values} &&
 		    $col->{value_type} !~ $value_types_suitable_for_allowed_values;
 		}, "these columns are not suitable for 'allowed_values'");
 
   # check that a default value, if given, is in allowed_values, if given
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    defined $col->{allowed_values} &&
+		  defined $col->{allowed_values} &&
 		    $col->{default} &&
 		    0 == grep { $_ eq $col->{default} } @{$col->{allowed_values}};
 		}, "'default' values for these columns are not in their 'allowed_values'");
@@ -429,8 +424,7 @@ sub validate_config {
   # check that any term_lookup values exist in the $config hash as first level keys
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    $col->{term_lookup} &&
+		  $col->{term_lookup} &&
 		    !exists $config->{$col->{term_lookup}};
 		}, "these columns have term_lookup values that are not defined in the config file");
 
@@ -444,10 +438,16 @@ sub validate_config {
   # check that any column with `unit` annotation also has `value_type: number`
   validate_cols($column_config, sub {
 		  my $col = shift;
-		  !$col->{ignore} &&
-		    $col->{unit} &&
+		  $col->{unit} &&
 		    $col->{value_type} ne 'number';
 		}, "these columns have units but are not number columns");
+
+  # check that scale_factor annotations only apply to number variables
+  validate_cols($column_config, sub {
+		  my $col = shift;
+		  defined $col->{scale_factor} && # scale_factor could be zero in extreme edge cases
+		    $col->{value_type} ne 'number';
+		}, "these columns have scale_factor but are not number columns");
 
   ### the following have side effects!
 
@@ -460,9 +460,13 @@ sub validate_config {
 
 # not to be confused with validate_columns below!
 # this is just a helper for validate_config
+# note that all tests include the `ignore` check
 sub validate_cols {
   my ($column_config, $condition, $error_message) = @_;
-  my @bad = grep { $condition->($column_config->{$_}) } keys %$column_config;
+  my @bad = grep {
+    my $col = $column_config->{$_};
+    !$col->{ignore} && $condition->($col);
+  } keys %$column_config;
   die "FATAL ERROR: $error_message: " . join(', ', @bad) . "\n" if @bad;
 }
 
