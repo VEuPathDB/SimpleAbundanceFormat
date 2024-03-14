@@ -88,7 +88,7 @@ GetOptions("output_directory|output-directory=s" => \$output_dir,
 	   "entities=s" => \$entities_filename,
 	   "skip-defaults|skip_defaults" => \$skip_defaults,
 	   "owl_file_url=s" => \@owl_file_urls,
-	   "validate!" => \$validate,
+	   "validate|validation!" => \$validate,
 	  );
 
 my ($config_filename, @saf_filenames) = @ARGV;
