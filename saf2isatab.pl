@@ -12,8 +12,13 @@
 #   --novalidate              (don't check that ontology term IDs are in the owl files - see next)
 #   --owl_file_url URL --owl_file_url URL2 ...
 #                             (one or more URLs to raw OWL file downloads, e.g. github links)
+# The default owl_file_URLs are:
+#   https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio.owl
+#   https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio_taxonomy.owl
 #
+# Note that these are the master branch versions.
 #
+
 # note:
 # * can handle tsv or csv data
 # * if using multiple data files
