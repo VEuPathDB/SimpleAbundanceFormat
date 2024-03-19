@@ -40,14 +40,14 @@ columns:
     value_type: string
     describes: pathogen detection assay
     protocol: PATHOGEN
-    column_term: POPBIO_0999991
+    column_term: POPBIO_8000021
     description: present/absent status of Plasmodium falciparum
 
   pathogen_status_Pv:
     value_type: string
     describes: pathogen detection assay
     protocol: PATHOGEN
-    column_term: POPBIO_0999992
+    column_term: POPBIO_8000022
     description: present/absent status of Plasmodium vivax
 
   junk:

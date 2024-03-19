@@ -9,7 +9,16 @@
 #
 #   --entities entities.yaml  (tell it what entities we are using)
 #   --skip-defaults           (don't load the default SAF column configurations)
+#   --novalidate              (don't check that ontology term IDs are in the owl files - see next)
+#   --owl_file_url URL --owl_file_url URL2 ...
+#                             (one or more URLs to raw OWL file downloads, e.g. github links)
+# The default owl_file_URLs are:
+#   https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio.owl
+#   https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio_taxonomy.owl
 #
+# Note that these are the master branch versions.
+#
+
 # note:
 # * can handle tsv or csv data
 # * if using multiple data files
@@ -58,6 +67,7 @@ use Storable qw/dclone/;
 use JSON;
 use Scalar::Util qw/looks_like_number/;
 use Tie::Hash::Indexed;
+use LWP::Simple;
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -72,15 +82,26 @@ my $output_dir = 'temp-isatab';
 my $entities_filename = $FindBin::Bin."/entities.yaml";
 my $skip_defaults;
 
+my @owl_file_urls =
+  (
+   'https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio.owl',
+   'https://github.com/VEuPathDB/ApiCommonData/raw/master/Load/ontology/popbio/popbio_taxonomy.owl',
+  );
+my $validate = 1;
+
 GetOptions("output_directory|output-directory=s" => \$output_dir,
 	   "entities=s" => \$entities_filename,
 	   "skip-defaults|skip_defaults" => \$skip_defaults,
+	   "owl_file_url=s" => \@owl_file_urls,
+	   "validate|validation!" => \$validate,
 	  );
 
 my ($config_filename, @saf_filenames) = @ARGV;
 
 die "must provide two or more filenames on commandline: config_file saf_data_file(s)\n"
     unless ($config_filename && -e $config_filename && @saf_filenames);
+
+my $valid_term_ids = $validate ? get_valid_term_ids(@owl_file_urls) : {};
 
 my @DEFERRED_ERRORS;
 
@@ -119,6 +140,11 @@ make_parent_lookup($root_entity, $entity_to_parent);
 validate_config($config, $flat_entities);
 check_config_for_placeholder_strings($config);
 
+if ($validate) {
+  # perform deep/recursive validation of term IDs keyed by '*term_accession_number'
+  validate_term_accession_numbers($entities, $entities_filename);
+  validate_term_accession_numbers($config, $config_filename);
+}
 
 foreach my $saf_filename (@saf_filenames) {
   die "FATAL ERROR: data file '$saf_filename' not found\n" unless (-e $saf_filename);
@@ -163,6 +189,7 @@ if (@DEFERRED_ERRORS) {
 #
 # write the ISA-Tab!
 #
+warn "Writing ISA-Tab to '$output_dir'...\n";
 my $isa_writer = Bio::Parser::ISATab->new(directory => $output_dir, protocols_first=>1);
 $isa_writer->write( { ontologies => [], studies => [ $study ] } );
 
@@ -294,6 +321,10 @@ sub add_column_data {
 	  if ($value_term_id) {
 	    push @term_source_refs, source_ref($value_term_id);
 	    push @term_accession_numbers, $value_term_id;
+
+	    if ($validate && !$valid_term_ids->{$value_term_id}) {
+	      push @DEFERRED_ERRORS, sprintf "unvalidated term ID '$value_term_id'; not found in OWL file(s)\n";
+	    }
 	  } else {
 	    push @DEFERRED_ERRORS, sprintf "value '%s' not found in '%s' term lookup\n", $value, $col_config->{term_lookup} // 'study_terms';
 	  }
@@ -416,6 +447,21 @@ sub validate_config {
 		    !$col->{column_term};
 		}, "these columns don't have a column_term (e.g. a variable IRI)");
 
+  # validate column_term IDs using OWL file(s)
+  if ($validate) {
+    my @bad_cols = validate_cols($column_config, sub {
+				   my $col = shift;
+				   $col->{value_type} =~ $value_types_requiring_column_term &&
+				     !$col->{deprecated} &&
+				     !$col->{ignore} &&
+				     $col->{column_term} &&
+				     !$valid_term_ids->{$col->{column_term}};
+				 });
+    if (@bad_cols > 0) {
+      die "FATAL ERROR: the following columns have 'column_term' IDs that were not validated via the OWL file(s):\n".join("\n", map { " $_ (bad ID: $column_config->{$_}{column_term})" } @bad_cols)."\n";
+    }
+  }
+
   # check that term columns do not have allowed_values
   validate_cols($column_config, sub {
 		  my $col = shift;
@@ -492,7 +538,20 @@ sub validate_cols {
     my $col = $column_config->{$_};
     !$col->{ignore} && $condition->($col);
   } keys %$column_config;
-  die "FATAL ERROR: $error_message: " . join(', ', @bad) . "\n" if @bad;
+  if ($error_message) {
+    die "FATAL ERROR: $error_message: " . join(', ', @bad) . "\n" if @bad;
+  }
+  return @bad;
+}
+
+sub validate_term_accession_numbers {
+  my ($data, $filename) = @_;
+  my @accessions = grep_keys_get_values($data, qr/term_accession_number$/);
+  my @bad_accessions = grep { !$valid_term_ids->{$_} } @accessions;
+  if (@bad_accessions) {
+    die "FATAL ERROR: term_accession_number(s) in '$filename' could not be validated via OWL file(s): ".
+      join(", ", @bad_accessions)."\n";
+  }
 }
 
 
@@ -703,4 +762,38 @@ sub ordered_hashref {
   my $ref = {};
   tie %{$ref}, 'Tie::Hash::Indexed';
   return $ref;
+}
+
+# make a hashref lookup for all term IDs matching "http://purl.obolibrary.org/obo/ABC_001234"
+sub get_valid_term_ids {
+  my @urls = @_;
+  my $lookup = {};
+  warn "Scanning these OWL files for valid term IDs:\n".join("\n", @urls)."\n";
+  foreach my $url (@urls) {
+    my $file_contents = get($url);
+    while ($file_contents =~ m{http://purl.obolibrary.org/obo/(\w+_\d+)}g) {
+      $lookup->{$1}++;
+    }
+  }
+  my $n = scalar %$lookup;
+  warn "Done. Found $n IDs.\n";
+  return $lookup;
+}
+
+
+sub grep_keys_get_values {
+  my ($data, $pattern) = @_;
+  my @result;
+  if (ref $data eq 'HASH') {
+    for my $key (keys %$data) {
+      my $value = $data->{$key};
+      push @result, $value if ($key =~ /$pattern/);
+      push @result, grep_keys_get_values($value, $pattern);
+    }
+  } elsif (ref $data eq 'ARRAY') {
+    for my $element (@$data) {
+      push @result, grep_keys_get_values($element, $pattern);
+    }
+  }
+  return @result;
 }
