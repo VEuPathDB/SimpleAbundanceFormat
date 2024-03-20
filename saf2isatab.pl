@@ -771,6 +771,7 @@ sub get_valid_term_ids {
   warn "Scanning these OWL files for valid term IDs:\n".join("\n", @urls)."\n";
   foreach my $url (@urls) {
     my $file_contents = get($url);
+    die "FATAL ERROR: couldn't read OWL file for term validation from '$url'\n" unless ($file_contents);
     while ($file_contents =~ m{http://purl.obolibrary.org/obo/(\w+_\d+)}g) {
       $lookup->{$1}++;
     }
