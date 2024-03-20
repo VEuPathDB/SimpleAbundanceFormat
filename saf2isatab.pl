@@ -775,7 +775,7 @@ sub get_valid_term_ids {
       $lookup->{$1}++;
     }
   }
-  my $n = scalar %$lookup;
+  my $n = scalar keys %$lookup;
   warn "Done. Found $n IDs.\n";
   return $lookup;
 }
