@@ -68,6 +68,7 @@ use JSON;
 use Scalar::Util qw/looks_like_number/;
 use Tie::Hash::Indexed;
 use LWP::Simple;
+use Hash::Diff qw(diff);
 
 #
 # NOTE ABOUT YAML: LoadFile will autodetect booleans, so 'true'/'false' values
@@ -234,6 +235,21 @@ sub add_material {
     $new_isaref = $isaref->{$entity->{isa_key}}{$entity_id} //= { material_type => $entity->{isa_material_type} };
 
     add_column_data($new_isaref, $column_keys, $row, $entity, $config_and_study);
+  } else {
+    # check for malformed input data
+    # (where there is different data for rows with the same entity ID)
+    # add to a dummy reference and compare the characteristics hashes
+    my $dummy = ordered_hashref();
+    add_column_data($dummy, $column_keys, $row, $entity, $config_and_study);
+    # do a diff on the characteristics hash
+    my $diff = diff($new_isaref->{characteristics}, $dummy->{characteristics});
+    if (keys %$diff) {
+      my $diff_fwd = encode_json($diff);
+      # do the opposite diff so we can see both offending values
+      my $diff_rev = encode_json(diff($dummy->{characteristics}, $new_isaref->{characteristics}));
+      # let's die if there's a problem, because there will be tons of these if we defer them
+      die "FATAL data issue: $entity->{name} '$entity_id' has multiple rows with different data:\nHere's what's different in the first offending duplicate (other columns could be involved too):\n\n$diff_fwd\n$diff_rev\n";
+    }
   }
 
   # recurse down entity tree
