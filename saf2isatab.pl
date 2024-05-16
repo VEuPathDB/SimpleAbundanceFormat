@@ -241,14 +241,16 @@ sub add_material {
     # add to a dummy reference and compare the characteristics hashes
     my $dummy = ordered_hashref();
     add_column_data($dummy, $column_keys, $row, $entity, $config_and_study);
-    # do a diff on the characteristics hash
-    my $diff = diff($new_isaref->{characteristics}, $dummy->{characteristics});
+    # do a diff on the characteristics and protocols hash
+    my $old_data = { %$new_isaref{qw/characteristics protocols/} };
+    my $new_data = { %$dummy{qw/characteristics protocols/} };
+    my $diff = diff($old_data, $new_data);
     if (keys %$diff) {
       my $diff_fwd = encode_json($diff);
       # do the opposite diff so we can see both offending values
-      my $diff_rev = encode_json(diff($dummy->{characteristics}, $new_isaref->{characteristics}));
+      my $diff_rev = encode_json(diff($new_data, $old_data));
       # let's die if there's a problem, because there will be tons of these if we defer them
-      die "FATAL data issue: $entity->{name} '$entity_id' has multiple rows with different data:\nHere's what's different in the first offending duplicate (other columns could be involved too):\n\n$diff_fwd\n$diff_rev\n";
+      die "FATAL data issue: $entity->{name} '$entity_id' has multiple rows with different data:\nHere's what's different in the first offending duplicate (other columns could be involved too):\n\n$diff_fwd\n$diff_rev\n".($diff_fwd eq $diff_rev ? "(Yes these look the same, but trust the wizard. Something is missing from one or the other row.)\n" : "");
     }
   }
 
